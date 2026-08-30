@@ -1,5 +1,6 @@
 // Package agentsdk defines the deployment-neutral Agent execution protocol.
-// Runtime retains workflow, authorization, approval and task-run ownership.
+// Agent owns definitions and execution state; Runtime retains business
+// workflow, authorization, approval and host transaction orchestration.
 package agentsdk
 
 import (
@@ -82,11 +83,6 @@ func (d Descriptor) Validate() error {
 	return nil
 }
 
-type TaskDefinition struct {
-	Key         string `json:"key"`
-	Version     string `json:"version"`
-	Instruction string `json:"instruction"`
-}
 type PrincipalReference struct {
 	UserID                string `json:"user_id"`
 	RoleKey               string `json:"role_key"`
@@ -150,11 +146,21 @@ type RouteCandidate struct {
 	Version   string `json:"version,omitempty"`
 }
 type GlobalContext struct {
-	WorkspaceID string         `json:"workspace_id"`
-	ActorID     string         `json:"actor_id"`
-	Locale      string         `json:"locale,omitempty"`
-	Timezone    string         `json:"timezone,omitempty"`
-	Values      map[string]any `json:"values,omitempty"`
+	ContractVersion     string             `json:"contract_version"`
+	ContextRevision     string             `json:"context_revision"`
+	EntrypointKey       string             `json:"entrypoint_key"`
+	AgentKey            string             `json:"agent_key"`
+	Surface             string             `json:"surface"`
+	RouteKey            string             `json:"route_key"`
+	ObjectKey           string             `json:"object_key,omitempty"`
+	RecordID            string             `json:"record_id,omitempty"`
+	SelectedRecordIDs   []string           `json:"selected_record_ids,omitempty"`
+	Locale              string             `json:"locale,omitempty"`
+	Timezone            string             `json:"timezone,omitempty"`
+	Principal           PrincipalReference `json:"principal"`
+	AllowedTaskKeys     []string           `json:"allowed_task_keys"`
+	AllowedWorkflowKeys []string           `json:"allowed_workflow_keys"`
+	AvailableOperations []string           `json:"available_operation_ids"`
 }
 type InteractiveRequest struct {
 	RunID               string           `json:"run_id"`
@@ -175,12 +181,6 @@ type RouteResult struct {
 	Input          map[string]any `json:"input,omitempty"`
 	Reason         string         `json:"reason,omitempty"`
 	IdempotencyKey string         `json:"idempotency_key,omitempty"`
-}
-type Handoff struct {
-	TaskKey     string         `json:"task_key"`
-	TaskVersion string         `json:"task_version,omitempty"`
-	TaskRunID   string         `json:"task_run_id,omitempty"`
-	Input       map[string]any `json:"input,omitempty"`
 }
 type InteractiveResult struct {
 	RunID         string         `json:"run_id,omitempty"`
