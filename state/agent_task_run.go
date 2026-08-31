@@ -135,6 +135,8 @@ type AgentTaskRun struct {
 	Attempt            int                          `json:"attempt"`
 	MaxAttempts        int                          `json:"max_attempts"`
 	TimeoutSeconds     int                          `json:"timeout_seconds"`
+	MaxToolCalls       int                          `json:"max_tool_calls"`
+	MaxCostUnits       int                          `json:"max_cost_units"`
 	ToolCallCount      int                          `json:"tool_call_count"`
 	NextAttemptAt      *time.Time                   `json:"next_attempt_at,omitempty"`
 	Lease              AgentTaskLease               `json:"lease,omitempty"`

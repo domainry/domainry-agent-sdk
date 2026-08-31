@@ -1,6 +1,6 @@
 // Package agentsdk defines the deployment-neutral Agent execution protocol.
-// Agent owns definitions and execution state; Runtime retains business
-// workflow, authorization, approval and host transaction orchestration.
+// Agent owns definitions, conversations, proposals and execution state;
+// Runtime retains workflow state plus host authorization and business effects.
 package agentsdk
 
 import (
@@ -34,6 +34,15 @@ func (e *Error) Unwrap() error {
 	}
 	return e.Cause
 }
+
+func (e *Error) ErrorCode() string {
+	if e == nil {
+		return ""
+	}
+	return strings.TrimSpace(e.Code)
+}
+
+func (*Error) ErrorParams() map[string]string { return nil }
 
 const ProtocolVersionV1 = "domainry-agent-protocol-v1"
 
@@ -111,13 +120,19 @@ const (
 type TaskRequest struct {
 	TaskRunID           string            `json:"task_run_id"`
 	ProcessID           string            `json:"process_id,omitempty"`
+	NodeInstanceID      string            `json:"node_instance_id,omitempty"`
 	WorkspaceID         string            `json:"workspace_id"`
 	Task                TaskDefinition    `json:"task"`
 	Identity            ExecutionIdentity `json:"identity"`
 	Input               map[string]any    `json:"input,omitempty"`
+	AllowedObjects      []string          `json:"allowed_objects,omitempty"`
+	AllowedActions      []string          `json:"allowed_actions,omitempty"`
+	AllowedOutcomes     []string          `json:"allowed_outcomes,omitempty"`
+	AllowedTools        []string          `json:"allowed_tools,omitempty"`
 	ExecutionCredential string            `json:"execution_credential,omitempty"`
 	CorrelationID       string            `json:"correlation_id,omitempty"`
 	IdempotencyKey      string            `json:"idempotency_key"`
+	MaxAttempts         int               `json:"max_attempts,omitempty"`
 	Deadline            time.Time         `json:"deadline"`
 }
 
@@ -150,7 +165,6 @@ type GlobalContext struct {
 	ContextRevision     string             `json:"context_revision"`
 	EntrypointKey       string             `json:"entrypoint_key"`
 	AgentKey            string             `json:"agent_key"`
-	Surface             string             `json:"surface"`
 	RouteKey            string             `json:"route_key"`
 	ObjectKey           string             `json:"object_key,omitempty"`
 	RecordID            string             `json:"record_id,omitempty"`

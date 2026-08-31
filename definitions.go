@@ -158,8 +158,6 @@ type AgentEntrypointAssignment struct {
 	ContractVersion     string                     `json:"contract_version"`
 	Key                 string                     `json:"key"`
 	AgentKey            string                     `json:"agent_key"`
-	Surface             string                     `json:"surface"`
-	DefaultForSurface   bool                       `json:"default_for_surface,omitempty"`
 	RequiredPermissions []string                   `json:"required_permissions"`
 	RoutePatterns       []string                   `json:"route_patterns"`
 	AllowedTaskKeys     []string                   `json:"allowed_task_keys,omitempty"`

@@ -1,8 +1,10 @@
 package contracttest
 
 import (
-	agentsdk "github.com/domainry/domainry-agent-sdk"
 	"testing"
+
+	agentsdk "github.com/domainry/domainry-agent-sdk"
+	agentpersistence "github.com/domainry/domainry-agent-sdk/persistence"
 )
 
 func VerifyBinding(t *testing.T, binding agentsdk.Binding, mode agentsdk.DeploymentMode) {
@@ -30,5 +32,19 @@ func VerifyBinding(t *testing.T, binding agentsdk.Binding, mode agentsdk.Deploym
 	}
 	if binding.TaskRunner() == nil || binding.InteractiveRunner() == nil {
 		t.Fatal("Agent Binding runners are incomplete")
+	}
+	for _, capability := range descriptor.Capabilities {
+		switch capability {
+		case "dialog.state":
+			stateBinding, ok := binding.(agentsdk.AgentDialogStateBinding)
+			if !ok || stateBinding.DialogState() == nil {
+				t.Fatal("Agent Binding advertises dialog.state without a dialog state service")
+			}
+		case "execution.state":
+			stateBinding, ok := binding.(agentpersistence.ExecutionStateBinding)
+			if !ok || stateBinding.AgentTaskState() == nil || stateBinding.AgentInteractiveState() == nil {
+				t.Fatal("Agent Binding advertises execution.state without task and interactive state services")
+			}
+		}
 	}
 }

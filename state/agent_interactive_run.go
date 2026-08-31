@@ -28,7 +28,6 @@ type AgentInteractiveRun struct {
 	WorkspaceID         string                            `json:"workspace_id"`
 	UserID              string                            `json:"user_id"`
 	RoleKey             string                            `json:"role_key"`
-	Surface             string                            `json:"surface"`
 	RouteKey            string                            `json:"route_key"`
 	AgentKey            string                            `json:"agent_key"`
 	EntrypointKey       string                            `json:"entrypoint_key"`
@@ -57,7 +56,7 @@ type AgentInteractiveRun struct {
 }
 
 func (run AgentInteractiveRun) ValidForCreate() bool {
-	required := []string{run.ID, run.SessionID, run.WorkspaceID, run.UserID, run.RoleKey, run.Surface, run.EntrypointKey, run.ContextRevision, run.IdempotencyKey}
+	required := []string{run.ID, run.SessionID, run.WorkspaceID, run.UserID, run.RoleKey, run.EntrypointKey, run.ContextRevision, run.IdempotencyKey}
 	for _, value := range required {
 		if strings.TrimSpace(value) == "" {
 			return false
