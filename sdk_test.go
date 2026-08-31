@@ -7,8 +7,12 @@ func TestDescriptorAndApplicationValidation(t *testing.T) {
 		t.Fatal("empty application accepted")
 	}
 	for _, mode := range []DeploymentMode{DeploymentModeModule, DeploymentModeSaaS} {
-		if err := (Descriptor{ProtocolVersion: ProtocolVersionV1, Mode: mode, Capabilities: []string{"task.start", "task.poll", "task.cancel", "interactive.run"}}).Validate(); err != nil {
+		descriptor := Descriptor{ProtocolVersion: ProtocolVersionV1, Mode: mode, Capabilities: []string{CapabilityTaskStart, CapabilityTaskPoll, CapabilityTaskCancel, CapabilityInteractiveRun, CapabilityLifecycleExecute}}
+		if err := descriptor.Validate(); err != nil {
 			t.Fatal(err)
+		}
+		if !descriptor.HasCapability(CapabilityLifecycleExecute) {
+			t.Fatal("lifecycle capability was not disclosed")
 		}
 	}
 	if err := (Descriptor{ProtocolVersion: "old", Mode: DeploymentModeModule}).Validate(); err == nil {

@@ -10,7 +10,3 @@ type Binding interface {
 type DefinitionBinding interface {
 	DefinitionRepository() DefinitionRepository
 }
-
-type LifecycleBinding interface {
-	AgentLifecycleRepository() AgentLifecycleRepository
-}

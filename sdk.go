@@ -46,6 +46,14 @@ func (*Error) ErrorParams() map[string]string { return nil }
 
 const ProtocolVersionV1 = "domainry-agent-protocol-v1"
 
+const (
+	CapabilityTaskStart        = "task.start"
+	CapabilityTaskPoll         = "task.poll"
+	CapabilityTaskCancel       = "task.cancel"
+	CapabilityInteractiveRun   = "interactive.run"
+	CapabilityLifecycleExecute = "lifecycle.execute"
+)
+
 type DeploymentMode string
 
 const (
@@ -78,7 +86,12 @@ func (d Descriptor) Validate() error {
 	if d.Mode != DeploymentModeModule && d.Mode != DeploymentModeSaaS {
 		return fmt.Errorf("invalid Agent deployment mode %q", d.Mode)
 	}
-	required := map[string]bool{"task.start": false, "task.poll": false, "task.cancel": false, "interactive.run": false}
+	required := map[string]bool{
+		CapabilityTaskStart:      false,
+		CapabilityTaskPoll:       false,
+		CapabilityTaskCancel:     false,
+		CapabilityInteractiveRun: false,
+	}
 	for _, capability := range d.Capabilities {
 		if _, ok := required[strings.TrimSpace(capability)]; ok {
 			required[strings.TrimSpace(capability)] = true
@@ -90,6 +103,16 @@ func (d Descriptor) Validate() error {
 		}
 	}
 	return nil
+}
+
+func (d Descriptor) HasCapability(capability string) bool {
+	capability = strings.TrimSpace(capability)
+	for _, candidate := range d.Capabilities {
+		if strings.TrimSpace(candidate) == capability {
+			return true
+		}
+	}
+	return false
 }
 
 type PrincipalReference struct {

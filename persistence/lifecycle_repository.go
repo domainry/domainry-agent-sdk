@@ -10,7 +10,6 @@ import (
 // LifecycleQuery carries host policy timing without exposing Agent storage.
 // Eligibility and reference rules remain owned by the Agent module.
 type LifecycleQuery struct {
-	Owner           string
 	PolicyKey       string
 	Now             time.Time
 	Retention       time.Duration
@@ -25,6 +24,5 @@ type LifecycleCandidate struct {
 
 type AgentLifecycleRepository interface {
 	ListLifecycleCandidates(context.Context, string, LifecycleQuery) ([]LifecycleCandidate, error)
-	LifecycleCandidateReferenced(context.Context, string, LifecycleCandidate) (bool, error)
 	DeleteLifecycleCandidate(context.Context, string, LifecycleCandidate) (bool, error)
 }

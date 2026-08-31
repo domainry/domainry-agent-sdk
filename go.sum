@@ -1,2 +1,4 @@
-github.com/domainry/domainry-orm v0.1.25 h1:Q/FRU/3sbJU6G2lnZ1laufD+7k2hwDtHzakQd4h6oq0=
-github.com/domainry/domainry-orm v0.1.25/go.mod h1:NKMojLuridkYCS4i5L7BO7LMTMsf/uOkWQ9OQ+9Vdn4=
+github.com/domainry/domainry-lifecycle-sdk v0.1.6 h1:ZsjPAePchKO1Xw0MHATWEJN+srNTNsh9STeFGNBqSHE=
+github.com/domainry/domainry-lifecycle-sdk v0.1.6/go.mod h1:M1i8w38XqZLCLuCQ+lbZLjog/t9YSUtTMrkIB5WTrJM=
+github.com/domainry/domainry-orm v0.1.29 h1:cJLNjxCDmqQfY3//5l25T51tbrPUw30cO3aandF5VCw=
+github.com/domainry/domainry-orm v0.1.29/go.mod h1:NKMojLuridkYCS4i5L7BO7LMTMsf/uOkWQ9OQ+9Vdn4=
