@@ -1,4 +1,4 @@
-package repository
+package persistence
 
 // Binding exposes Agent-owned repositories without exposing concrete stores
 // or the selected database topology.
