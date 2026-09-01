@@ -4,25 +4,24 @@ import (
 	"encoding/json"
 	"strings"
 
+	actioncontract "github.com/domainry/domainry-foundation/action"
 	"github.com/domainry/domainry-foundation/modulecapability"
 )
 
-const AgentHTTPSurfaceContractVersion = "domainry-agent-http-surface-v1"
+const AgentHTTPSurfaceContractVersion = "domainry-agent-http-surface-v2"
 
 // HTTPRouteContract is the source-owned Agent product-route manifest. Runtime
 // may host these routes, but it must not recreate their authorization or
 // governance semantics.
 type HTTPRouteContract struct {
-	Pattern             string   `json:"pattern"`
-	Exposures           []string `json:"exposures"`
-	Authentication      string   `json:"authentication"`
-	Permission          string   `json:"permission,omitempty"`
-	AnyPermissions      []string `json:"any_permissions,omitempty"`
-	PrincipalOnly       bool     `json:"principal_only,omitempty"`
-	EffectClass         string   `json:"effect_class"`
-	HighRiskPolicy      string   `json:"high_risk_policy"`
-	IdempotencyDecision string   `json:"idempotency_decision"`
-	AuditClass          string   `json:"audit_class"`
+	Action actioncontract.ActionDefinition `json:"action"`
+}
+
+func (route HTTPRouteContract) Pattern() string {
+	if route.Action.HTTP == nil {
+		return ""
+	}
+	return route.Action.HTTP.Method + " " + route.Action.HTTP.RouteTemplate
 }
 
 type HTTPSurfaceContract struct {
@@ -39,28 +38,28 @@ type HTTPSurfaceContract struct {
 // its identity, authorization, business-effect, and analysis host ports.
 func AgentHTTPSurfaceContract() HTTPSurfaceContract {
 	routes := []HTTPRouteContract{
-		agentPrincipalRoute("POST /agent-dialog/runs", "write", "caller_key_required", "agent_interactive_execution"),
-		agentPrincipalRoute("POST /agent-dialog/runs/stream", "write", "caller_key_required", "agent_interactive_execution"),
-		agentPrincipalRoute("GET /agent-dialog/sessions", "read", "not_applicable", "owner_read_audit_policy"),
-		agentPrincipalRoute("POST /agent-dialog/sessions", "write", "not_supported", "mutation_audit_required"),
-		agentPrincipalRoute("POST /agent-dialog/sessions/{externalSessionID}/archive", "write", "natural", "mutation_audit_required"),
-		agentPrincipalRoute("POST /agent-dialog/sessions/{externalSessionID}/restore", "write", "natural", "mutation_audit_required"),
-		agentPrincipalRoute("GET /agent-dialog/proposals", "read", "not_applicable", "owner_read_audit_policy"),
-		agentPrincipalRoute("GET /agent-dialog/proposals/{proposalID}", "read", "not_applicable", "owner_read_audit_policy"),
-		agentPrincipalRoute("POST /agent-dialog/proposals", "write", "not_supported", "mutation_audit_required"),
-		agentPrincipalRoute("POST /agent-dialog/proposals/{proposalID}/approve", "write", "natural", "mutation_audit_required"),
-		agentPrincipalRoute("POST /agent-dialog/proposals/{proposalID}/reject", "write", "natural", "mutation_audit_required"),
-		agentPrincipalRoute("GET /agent-dialog/runs/{runID}", "read", "not_applicable", "owner_read_audit_policy"),
-		agentPrincipalRoute("GET /agent-dialog/task-runs/{taskRunID}", "read", "not_applicable", "owner_read_audit_policy"),
-		agentAnonymousRoute("POST /agent-dialog/task-tools/invoke", "write", "credential_payload_key_required", "credential_scoped_tool_audit"),
-		agentPrincipalRoute("POST /agent-dialog/analysis/query", "read", "not_applicable", "owner_read_audit_policy"),
-		agentFixedRoute("GET /agent-dialog/diagnostics", []string{"tenant_admin", "ops"}, []string{"workspace.admin"}, "read", "not_applicable", "owner_read_audit_policy"),
-		agentFixedRoute("GET /operations/agent/tasks", []string{"tenant_admin", "ops"}, []string{"agent.task.read", "workspace.admin"}, "read", "not_applicable", "owner_read_audit_policy"),
-		agentFixedRoute("GET /operations/agent/tasks/{taskRunID}", []string{"tenant_admin", "ops"}, []string{"agent.task.read", "workspace.admin"}, "read", "not_applicable", "owner_read_audit_policy"),
-		agentFixedRoute("POST /operations/agent/tasks/{taskRunID}/retry", []string{"tenant_admin", "ops"}, []string{"agent.task.operate", "workspace.admin"}, "write", "caller_key_required", "mutation_audit_required"),
-		agentFixedRoute("POST /operations/agent/tasks/{taskRunID}/cancel", []string{"tenant_admin", "ops"}, []string{"agent.task.operate", "workspace.admin"}, "write", "caller_key_required", "mutation_audit_required"),
-		agentFixedRoute("POST /operations/agent/tasks/{taskRunID}/resolve", []string{"tenant_admin", "ops"}, []string{"agent.task.operate", "workspace.admin"}, "write", "caller_key_required", "mutation_audit_required"),
-		agentFixedRoute("POST /operations/agent/tasks/{taskRunID}/reconcile", []string{"tenant_admin", "ops"}, []string{"agent.task.operate", "workspace.admin"}, "write", "caller_key_required", "mutation_audit_required"),
+		agentPrincipalRoute("agent.runs.execute", "POST /agent-dialog/runs", "write", "caller_key_required", "agent_interactive_execution"),
+		agentPrincipalRoute("agent.runs.stream", "POST /agent-dialog/runs/stream", "write", "caller_key_required", "agent_interactive_execution"),
+		agentPrincipalRoute("agent.sessions.list", "GET /agent-dialog/sessions", "read", "not_applicable", "owner_read_audit_policy"),
+		agentPrincipalRoute("agent.sessions.upsert", "POST /agent-dialog/sessions", "write", "not_supported", "mutation_audit_required"),
+		agentPrincipalRoute("agent.sessions.archive", "POST /agent-dialog/sessions/{externalSessionID}/archive", "write", "natural", "mutation_audit_required"),
+		agentPrincipalRoute("agent.sessions.restore", "POST /agent-dialog/sessions/{externalSessionID}/restore", "write", "natural", "mutation_audit_required"),
+		agentPrincipalRoute("agent.proposals.list", "GET /agent-dialog/proposals", "read", "not_applicable", "owner_read_audit_policy"),
+		agentPrincipalRoute("agent.proposals.get", "GET /agent-dialog/proposals/{proposalID}", "read", "not_applicable", "owner_read_audit_policy"),
+		agentPrincipalRoute("agent.proposals.create", "POST /agent-dialog/proposals", "write", "not_supported", "mutation_audit_required"),
+		agentPrincipalRoute("agent.proposals.approve", "POST /agent-dialog/proposals/{proposalID}/approve", "write", "natural", "mutation_audit_required"),
+		agentPrincipalRoute("agent.proposals.reject", "POST /agent-dialog/proposals/{proposalID}/reject", "write", "natural", "mutation_audit_required"),
+		agentPrincipalRoute("agent.runs.get", "GET /agent-dialog/runs/{runID}", "read", "not_applicable", "owner_read_audit_policy"),
+		agentPrincipalRoute("agent.task_runs.get", "GET /agent-dialog/task-runs/{taskRunID}", "read", "not_applicable", "owner_read_audit_policy"),
+		agentDelegatedCredentialRoute("agent.task_tools.invoke", "POST /agent-dialog/task-tools/invoke", "write", "credential_payload_key_required", "credential_scoped_tool_audit"),
+		agentPrincipalRoute("agent.analysis.query", "POST /agent-dialog/analysis/query", "read", "not_applicable", "owner_read_audit_policy"),
+		agentFixedRoute("agent.diagnostics.read", "GET /agent-dialog/diagnostics", []actioncontract.Exposure{actioncontract.ExposureTenantAdmin, actioncontract.ExposureOps}, "read", "not_applicable", "owner_read_audit_policy"),
+		agentFixedRoute("agent.tasks.list", "GET /operations/agent/tasks", []actioncontract.Exposure{actioncontract.ExposureTenantAdmin, actioncontract.ExposureOps}, "read", "not_applicable", "owner_read_audit_policy"),
+		agentFixedRoute("agent.tasks.get", "GET /operations/agent/tasks/{taskRunID}", []actioncontract.Exposure{actioncontract.ExposureTenantAdmin, actioncontract.ExposureOps}, "read", "not_applicable", "owner_read_audit_policy"),
+		agentFixedRoute("agent.tasks.retry", "POST /operations/agent/tasks/{taskRunID}/retry", []actioncontract.Exposure{actioncontract.ExposureTenantAdmin, actioncontract.ExposureOps}, "write", "caller_key_required", "mutation_audit_required"),
+		agentFixedRoute("agent.tasks.cancel", "POST /operations/agent/tasks/{taskRunID}/cancel", []actioncontract.Exposure{actioncontract.ExposureTenantAdmin, actioncontract.ExposureOps}, "write", "caller_key_required", "mutation_audit_required"),
+		agentFixedRoute("agent.tasks.resolve", "POST /operations/agent/tasks/{taskRunID}/resolve", []actioncontract.Exposure{actioncontract.ExposureTenantAdmin, actioncontract.ExposureOps}, "write", "caller_key_required", "mutation_audit_required"),
+		agentFixedRoute("agent.tasks.reconcile", "POST /operations/agent/tasks/{taskRunID}/reconcile", []actioncontract.Exposure{actioncontract.ExposureTenantAdmin, actioncontract.ExposureOps}, "write", "caller_key_required", "mutation_audit_required"),
 	}
 	return HTTPSurfaceContract{
 		ContractVersion: AgentHTTPSurfaceContractVersion,
@@ -72,8 +71,6 @@ func AgentHTTPSurfaceContract() HTTPSurfaceContract {
 	}
 }
 
-// HTTPSurfaceOpenAPIOperations is retained as the narrow OpenAPI accessor used
-// by existing hosts. It reads the canonical contract above.
 func HTTPSurfaceOpenAPIOperations() map[string]map[string]any {
 	return AgentHTTPSurfaceContract().OpenAPI
 }
@@ -123,16 +120,41 @@ func HTTPSurfaceReferencedComponents(operations map[string]map[string]any) map[s
 	return result
 }
 
-func agentPrincipalRoute(pattern, effect, idempotency, audit string) HTTPRouteContract {
-	return HTTPRouteContract{Pattern: pattern, Exposures: []string{"public"}, Authentication: "authenticated", PrincipalOnly: true, EffectClass: effect, HighRiskPolicy: "none", IdempotencyDecision: idempotency, AuditClass: audit}
+func agentPrincipalRoute(key, pattern, effect, idempotency, audit string) HTTPRouteContract {
+	return agentHTTPRoute(key, pattern, []actioncontract.Exposure{actioncontract.ExposurePublic}, effect, idempotency, audit, "principal")
 }
 
-func agentAnonymousRoute(pattern, effect, idempotency, audit string) HTTPRouteContract {
-	return HTTPRouteContract{Pattern: pattern, Exposures: []string{"public"}, Authentication: "anonymous", EffectClass: effect, HighRiskPolicy: "none", IdempotencyDecision: idempotency, AuditClass: audit}
+func agentDelegatedCredentialRoute(key, pattern, effect, idempotency, audit string) HTTPRouteContract {
+	return agentHTTPRoute(key, pattern, []actioncontract.Exposure{actioncontract.ExposurePublic}, effect, idempotency, audit, "delegated_credential")
 }
 
-func agentFixedRoute(pattern string, exposures, permissions []string, effect, idempotency, audit string) HTTPRouteContract {
-	return HTTPRouteContract{Pattern: pattern, Exposures: exposures, Authentication: "authenticated", AnyPermissions: permissions, EffectClass: effect, HighRiskPolicy: "none", IdempotencyDecision: idempotency, AuditClass: audit}
+func agentFixedRoute(key, pattern string, exposures []actioncontract.Exposure, effect, idempotency, audit string) HTTPRouteContract {
+	return agentHTTPRoute(key, pattern, exposures, effect, idempotency, audit, "permission")
+}
+
+func agentHTTPRoute(key, pattern string, exposures []actioncontract.Exposure, effect, idempotency, audit, authorization string) HTTPRouteContract {
+	method, path, _ := strings.Cut(pattern, " ")
+	separator := strings.LastIndex(key, ".")
+	effectClass, risk := actioncontract.EffectClass(effect), actioncontract.RiskMedium
+	if effectClass == actioncontract.EffectRead {
+		risk = actioncontract.RiskLow
+	}
+	definition := actioncontract.ActionDefinition{
+		Key: key, Owner: "module:agent", SourceKind: "module_surface", CapabilityKey: "agent.product", CapabilityLabel: "Agent",
+		OperationKey: key[separator+1:], OperationLabel: key, Label: key, Exposures: exposures,
+		HTTP: &actioncontract.HTTPBinding{Method: method, RouteTemplate: path}, EffectClass: effectClass, RiskLevel: risk,
+		IdempotencyDecision: idempotency, AuditClass: audit, LifecycleStatus: actioncontract.LifecycleActive,
+	}
+	switch authorization {
+	case "principal":
+		definition.Authorization = actioncontract.Authorization{Strategy: actioncontract.AuthorizationAuthenticatedPrincipal}
+	case "delegated_credential":
+		definition.Authorization = actioncontract.Authorization{Strategy: actioncontract.AuthorizationDelegatedCredential, PolicyKey: "agent.task_tool_credential"}
+	case "permission":
+		definition.Authorization = actioncontract.Authorization{Strategy: actioncontract.AuthorizationExactRolePermission}
+		definition.Permission = &actioncontract.PermissionDefinition{Key: key, Owner: definition.Owner, ResourceKey: key[:separator], ActionKey: key[separator+1:], Label: key, Category: "Agent", LifecycleStatus: actioncontract.LifecycleActive}
+	}
+	return HTTPRouteContract{Action: definition}
 }
 
 func agentHTTPSurfaceOperations() map[string]map[string]any {
