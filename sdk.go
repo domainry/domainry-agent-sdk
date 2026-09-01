@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/domainry/domainry-foundation/modulecapability"
 )
 
 type Error struct {
@@ -236,6 +238,7 @@ type InteractiveRunner interface {
 }
 
 type Binding interface {
+	modulecapability.Binding
 	Descriptor() Descriptor
 	TaskRunner() TaskRunner
 	InteractiveRunner() InteractiveRunner
