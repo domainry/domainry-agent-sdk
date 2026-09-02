@@ -1,6 +1,9 @@
 package agentsdk
 
-import "testing"
+import (
+	"context"
+	"testing"
+)
 
 func TestDescriptorAndApplicationValidation(t *testing.T) {
 	if err := (ApplicationRef{}).Validate(); err == nil {
@@ -17,5 +20,21 @@ func TestDescriptorAndApplicationValidation(t *testing.T) {
 	}
 	if err := (Descriptor{ProtocolVersion: "old", Mode: DeploymentModeModule}).Validate(); err == nil {
 		t.Fatal("old protocol accepted")
+	}
+}
+
+func TestServiceActionAuthorizationIsExactAndAudienceBound(t *testing.T) {
+	ctx := WithAuthorizedServiceAction(t.Context(), ActionAgentTaskExecutionStart, AgentRuntimeServiceAudience)
+	if !HasAuthorizedServiceAction(ctx, ActionAgentTaskExecutionStart, AgentRuntimeServiceAudience) {
+		t.Fatal("exact service Action evidence was rejected")
+	}
+	if HasAuthorizedServiceAction(ctx, ActionAgentTaskExecutionPoll, AgentRuntimeServiceAudience) {
+		t.Fatal("Start service Action authorized Poll")
+	}
+	if HasAuthorizedServiceAction(ctx, ActionAgentTaskExecutionStart, "other-runtime") {
+		t.Fatal("service Action escaped its audience")
+	}
+	if HasAuthorizedServiceAction(context.Background(), ActionAgentTaskExecutionStart, AgentRuntimeServiceAudience) {
+		t.Fatal("missing service Action evidence was accepted")
 	}
 }

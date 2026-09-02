@@ -1,13 +1,47 @@
 package agentsdk
 
 import (
+	"strings"
 	"testing"
 
 	actioncontract "github.com/domainry/domainry-foundation/action"
 )
 
 func TestAgentHTTPSurfaceContractOwnsCompleteRouteCatalog(t *testing.T) {
-	contract := AgentHTTPSurfaceContract()
+	actions, err := AgentAuthorizationActions()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(actions) != 25 {
+		t.Fatalf("Agent Action count=%d want=25", len(actions))
+	}
+	roleActions, nonHTTPActions := 0, 0
+	for _, action := range actions {
+		if action.Authorization.Strategy == actioncontract.AuthorizationExactRolePermission {
+			roleActions++
+			if action.Permission == nil || action.Permission.Key != action.Key || action.Permission.Owner != action.Owner {
+				t.Fatalf("Agent role Action %q permission=%+v", action.Key, action.Permission)
+			}
+		}
+		if action.HTTP == nil {
+			nonHTTPActions++
+			if len(action.NonHTTP) != 1 || action.Authorization.Strategy != actioncontract.AuthorizationServiceIdentity {
+				t.Fatalf("Agent non-HTTP Action %q binding=%v authorization=%+v", action.Key, action.NonHTTP, action.Authorization)
+			}
+		}
+		separator := strings.LastIndex(action.Key, ".")
+		if separator <= 0 || action.OperationKey != action.Key[separator+1:] {
+			t.Fatalf("Agent Action %q operation=%q", action.Key, action.OperationKey)
+		}
+	}
+	if roleActions != 7 || nonHTTPActions != 3 {
+		t.Fatalf("Agent role Actions=%d non-HTTP Actions=%d", roleActions, nonHTTPActions)
+	}
+
+	contract, err := CompileAgentHTTPSurfaceContract()
+	if err != nil {
+		t.Fatal(err)
+	}
 	if contract.ContractVersion != AgentHTTPSurfaceContractVersion || contract.Owner != "agent" || len(contract.Routes) != 22 || len(contract.OpenAPI) != 22 {
 		t.Fatalf("Agent HTTP contract=%s owner=%s routes=%d operations=%d", contract.ContractVersion, contract.Owner, len(contract.Routes), len(contract.OpenAPI))
 	}

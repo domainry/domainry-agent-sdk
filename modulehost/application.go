@@ -2,6 +2,7 @@ package modulehost
 
 import (
 	"context"
+	"strings"
 
 	agentsdk "github.com/domainry/domainry-agent-sdk"
 	agentmodel "github.com/domainry/domainry-agent-sdk/state"
@@ -16,9 +17,18 @@ type Principal struct {
 	UserID                string
 	RoleKey               string
 	AuthorizationRevision string
-	RequestID             string
-	CorrelationID         string
-	CausationID           string
+	// AuthorizedActionKey is the one host-approved Action carried into the
+	// Agent application boundary. It is deliberately narrower than a role or
+	// AccessBundle and cannot grant any sibling Action.
+	AuthorizedActionKey string
+	RequestID           string
+	CorrelationID       string
+	CausationID         string
+}
+
+func (p Principal) HasAuthorizedAction(actionKey string) bool {
+	actionKey = strings.TrimSpace(actionKey)
+	return p.Known && actionKey != "" && strings.TrimSpace(p.AuthorizedActionKey) == actionKey
 }
 
 func (p Principal) Reference() agentsdk.PrincipalReference {

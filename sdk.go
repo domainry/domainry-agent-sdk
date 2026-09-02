@@ -180,6 +180,34 @@ type TaskRunner interface {
 	Cancel(context.Context, string, string) (TaskResult, error)
 }
 
+const AgentRuntimeServiceAudience = "domainry-runtime"
+
+type authorizedServiceActionContextKey struct{}
+
+type authorizedServiceAction struct {
+	key      string
+	audience string
+}
+
+// WithAuthorizedServiceAction carries one host-approved service Action into an
+// Agent application call. Only trusted host or credential-verification assembly
+// should create this evidence; it never carries a bundle of sibling grants.
+func WithAuthorizedServiceAction(ctx context.Context, actionKey, audience string) context.Context {
+	return context.WithValue(ctx, authorizedServiceActionContextKey{}, authorizedServiceAction{
+		key: strings.TrimSpace(actionKey), audience: strings.TrimSpace(audience),
+	})
+}
+
+// HasAuthorizedServiceAction accepts only the current exact Action and service
+// audience. An authorization for Start cannot authorize Poll or Cancel.
+func HasAuthorizedServiceAction(ctx context.Context, actionKey, audience string) bool {
+	if ctx == nil {
+		return false
+	}
+	evidence, ok := ctx.Value(authorizedServiceActionContextKey{}).(authorizedServiceAction)
+	return ok && evidence.key != "" && evidence.key == strings.TrimSpace(actionKey) && evidence.audience == strings.TrimSpace(audience)
+}
+
 type RouteCandidate struct {
 	RouteType string `json:"route_type"`
 	TargetKey string `json:"target_key"`
