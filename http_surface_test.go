@@ -17,7 +17,7 @@ func TestAgentHTTPSurfaceContractOwnsCompleteRouteCatalog(t *testing.T) {
 	}
 	roleActions, nonHTTPActions := 0, 0
 	for _, action := range actions {
-		if action.Authorization.Strategy == actioncontract.AuthorizationExactRolePermission {
+		if action.Permission != nil {
 			roleActions++
 			if action.Permission == nil || action.Permission.Key != action.Key || action.Permission.Owner != action.Owner {
 				t.Fatalf("Agent role Action %q permission=%+v", action.Key, action.Permission)
@@ -25,7 +25,7 @@ func TestAgentHTTPSurfaceContractOwnsCompleteRouteCatalog(t *testing.T) {
 		}
 		if action.HTTP == nil {
 			nonHTTPActions++
-			if len(action.NonHTTP) != 1 || action.Authorization.Strategy != actioncontract.AuthorizationServiceIdentity {
+			if len(action.NonHTTP) != 1 || action.Authorization.Strategy != actioncontract.AuthorizationSigned {
 				t.Fatalf("Agent non-HTTP Action %q binding=%v authorization=%+v", action.Key, action.NonHTTP, action.Authorization)
 			}
 		}
@@ -69,7 +69,7 @@ func TestAgentHTTPSurfaceContractOwnsCompleteRouteCatalog(t *testing.T) {
 			break
 		}
 	}
-	if toolAuthorization.Strategy != actioncontract.AuthorizationDelegatedCredential || toolAuthorization.PolicyKey != "agent.task_tool_credential" {
+	if toolAuthorization.Strategy != actioncontract.AuthorizationSigned || toolAuthorization.PolicyKey != "agent.task_tool_credential" {
 		t.Fatalf("Agent tool callback authorization=%+v", toolAuthorization)
 	}
 	components := HTTPSurfaceReferencedComponents(map[string]map[string]any{"POST /agent-dialog/runs": contract.OpenAPI["POST /agent-dialog/runs"]})

@@ -218,18 +218,18 @@ func HTTPSurfaceReferencedComponents(operations map[string]map[string]any) map[s
 }
 
 func agentPrincipalAction(key, capabilityKey, capabilityLabel, operationLabel, pattern string, effect actioncontract.EffectClass, idempotency, audit string) actioncontract.ActionDefinition {
-	return agentHTTPAction(key, capabilityKey, capabilityLabel, operationLabel, pattern, []actioncontract.Exposure{actioncontract.ExposurePublic}, effect, idempotency, audit, actioncontract.AuthorizationAuthenticatedPrincipal)
+	return agentHTTPAction(key, capabilityKey, capabilityLabel, operationLabel, pattern, []actioncontract.Exposure{actioncontract.ExposurePublic}, effect, idempotency, audit, actioncontract.AuthorizationAuthenticated, false)
 }
 
 func agentDelegatedCredentialAction(key, capabilityKey, capabilityLabel, operationLabel, pattern string, effect actioncontract.EffectClass, idempotency, audit string) actioncontract.ActionDefinition {
-	return agentHTTPAction(key, capabilityKey, capabilityLabel, operationLabel, pattern, []actioncontract.Exposure{actioncontract.ExposurePublic}, effect, idempotency, audit, actioncontract.AuthorizationDelegatedCredential)
+	return agentHTTPAction(key, capabilityKey, capabilityLabel, operationLabel, pattern, []actioncontract.Exposure{actioncontract.ExposurePublic}, effect, idempotency, audit, actioncontract.AuthorizationSigned, false)
 }
 
 func agentRoleAction(key, capabilityKey, capabilityLabel, operationLabel, pattern string, effect actioncontract.EffectClass, idempotency, audit string) actioncontract.ActionDefinition {
-	return agentHTTPAction(key, capabilityKey, capabilityLabel, operationLabel, pattern, []actioncontract.Exposure{actioncontract.ExposureTenantAdmin, actioncontract.ExposureOps}, effect, idempotency, audit, actioncontract.AuthorizationExactRolePermission)
+	return agentHTTPAction(key, capabilityKey, capabilityLabel, operationLabel, pattern, []actioncontract.Exposure{actioncontract.ExposureTenantAdmin, actioncontract.ExposureOps}, effect, idempotency, audit, actioncontract.AuthorizationAuthenticated, true)
 }
 
-func agentHTTPAction(key, capabilityKey, capabilityLabel, operationLabel, pattern string, exposures []actioncontract.Exposure, effect actioncontract.EffectClass, idempotency, audit string, strategy actioncontract.AuthorizationStrategy) actioncontract.ActionDefinition {
+func agentHTTPAction(key, capabilityKey, capabilityLabel, operationLabel, pattern string, exposures []actioncontract.Exposure, effect actioncontract.EffectClass, idempotency, audit string, strategy actioncontract.AuthorizationStrategy, requirePermission bool) actioncontract.ActionDefinition {
 	method, path, _ := strings.Cut(pattern, " ")
 	separator := strings.LastIndex(key, ".")
 	risk := actioncontract.RiskMedium
@@ -243,12 +243,12 @@ func agentHTTPAction(key, capabilityKey, capabilityLabel, operationLabel, patter
 		IdempotencyDecision: idempotency, AuditClass: audit, LifecycleStatus: actioncontract.LifecycleActive,
 	}
 	switch strategy {
-	case actioncontract.AuthorizationAuthenticatedPrincipal:
-		definition.Authorization = actioncontract.Authorization{Strategy: actioncontract.AuthorizationAuthenticatedPrincipal}
-	case actioncontract.AuthorizationDelegatedCredential:
-		definition.Authorization = actioncontract.Authorization{Strategy: actioncontract.AuthorizationDelegatedCredential, PolicyKey: "agent.task_tool_credential"}
-	case actioncontract.AuthorizationExactRolePermission:
-		definition.Authorization = actioncontract.Authorization{Strategy: actioncontract.AuthorizationExactRolePermission}
+	case actioncontract.AuthorizationAuthenticated:
+		definition.Authorization = actioncontract.Authorization{Strategy: actioncontract.AuthorizationAuthenticated}
+	case actioncontract.AuthorizationSigned:
+		definition.Authorization = actioncontract.Authorization{Strategy: actioncontract.AuthorizationSigned, PolicyKey: "agent.task_tool_credential"}
+	}
+	if requirePermission {
 		definition.Permission = &actioncontract.PermissionDefinition{Key: key, Owner: definition.Owner, ResourceKey: key[:separator], OperationKey: key[separator+1:], Label: operationLabel, Category: capabilityLabel, LifecycleStatus: actioncontract.LifecycleActive}
 	}
 	return definition
@@ -265,7 +265,7 @@ func agentTaskExecutionAction(key, operationLabel string, effect actioncontract.
 		CapabilityKey: AgentCapabilityTaskExecution, CapabilityLabel: "Agent task execution",
 		OperationKey: key[separator+1:], OperationLabel: operationLabel, Label: operationLabel,
 		Exposures:     []actioncontract.Exposure{actioncontract.ExposureOps},
-		Authorization: actioncontract.Authorization{Strategy: actioncontract.AuthorizationServiceIdentity, PolicyKey: "agent.runtime_host", Audiences: []string{AgentRuntimeServiceAudience}},
+		Authorization: actioncontract.Authorization{Strategy: actioncontract.AuthorizationSigned, PolicyKey: "agent.runtime_host", Audiences: []string{AgentRuntimeServiceAudience}},
 		NonHTTP:       []actioncontract.NonHTTPBinding{{Kind: "sdk", InvocationKey: key}},
 		EffectClass:   effect, RiskLevel: risk, IdempotencyDecision: idempotency,
 		AuditClass: "agent_task_execution", LifecycleStatus: actioncontract.LifecycleActive,
