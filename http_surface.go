@@ -349,7 +349,7 @@ func agentHTTPComponents() map[string]map[string]json.RawMessage {
 	}, "metadata"))
 	schemas["AgentProposalDecisionRequest"] = rawSchema(objectSchema(map[string]any{"reason": stringSchema(), "metadata": freeObjectSchema()}))
 	schemas["AgentInteractiveRunRequest"] = rawSchema(objectSchema(map[string]any{
-		"message": stringSchema(), "response_mode": enumStringSchema("blocking"), "timeout_seconds": map[string]any{"type": "integer", "minimum": 0}, "new_session": map[string]any{"type": "boolean"},
+		"message": stringSchema(), "timeout_seconds": map[string]any{"type": "integer", "minimum": 0}, "new_session": map[string]any{"type": "boolean"},
 		"external_session_id": stringSchema(), "context": freeObjectSchema(), "metadata": freeObjectSchema(), "idempotency_key": stringSchema(),
 	}, "message"))
 	schemas["AgentInteractiveResult"] = rawSchema(modulecapability.JSONSchemaForGoValue(InteractiveResult{}))
