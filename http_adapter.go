@@ -172,6 +172,20 @@ func HTTPAdapterOpenAPIOperations() map[string]map[string]any {
 	return AgentHTTPAdapterContract().OpenAPI
 }
 
+// HTTPAdapterResolvedOpenAPIOperations returns self-contained operation
+// objects for hosts that merge module operations but do not merge the
+// module's component registry. Keeping this projection here prevents an
+// embedding Runtime from publishing dangling #/components references.
+func HTTPAdapterResolvedOpenAPIOperations() map[string]map[string]any {
+	contract := AgentHTTPAdapterContract()
+	resolved := make(map[string]map[string]any, len(contract.OpenAPI))
+	for pattern, operation := range contract.OpenAPI {
+		value := resolveAgentHTTPReferences(operation, contract.Components, map[string]bool{})
+		resolved[pattern] = value.(map[string]any)
+	}
+	return resolved
+}
+
 // HTTPAdapterReferencedComponents returns the exact transitive component
 // closure used by the selected operations. Capability categories use it to
 // avoid returning unrelated Agent schemas in every bounded batch.
@@ -410,9 +424,40 @@ func agentAnalysisResultSchema() map[string]any {
 
 func agentDiagnosticsResultSchema() map[string]any {
 	return objectSchema(map[string]any{
-		"runtime_context_preview": freeObjectSchema(), "agent_runner": freeObjectSchema(), "skill_bindings": arraySchema(freeObjectSchema()), "effective_tools": arraySchema(freeObjectSchema()),
+		"runtime_context_preview": agentDiagnosticsContextSchema(), "agent_runner": agentDiagnosticsRunnerSchema(), "skill_bindings": arraySchema(agentDiagnosticsSkillBindingSchema()), "effective_tools": arraySchema(agentDiagnosticsToolSchema()),
 		"proposal_queue": arraySchema(schemaReference("AgentProposal")), "execution_logs": arraySchema(freeObjectSchema()), "execution_log_error": stringSchema(), "guardrails": arraySchema(stringSchema()),
 	}, "runtime_context_preview", "agent_runner", "skill_bindings", "effective_tools", "proposal_queue", "execution_logs", "execution_log_error", "guardrails")
+}
+
+func agentDiagnosticsContextSchema() map[string]any {
+	principal := objectSchema(map[string]any{
+		"user_id": stringSchema(), "role_key": stringSchema(), "workspace_id": stringSchema(), "authorization_revision": stringSchema(),
+	}, "user_id", "role_key", "workspace_id", "authorization_revision")
+	return objectSchema(map[string]any{
+		"workspace": stringSchema(), "module_key": stringSchema(), "view_key": stringSchema(), "object_key": stringSchema(),
+		"record_id": stringSchema(), "data_scope_note": stringSchema(), "principal": principal,
+	}, "workspace", "module_key", "view_key", "object_key", "record_id", "data_scope_note", "principal")
+}
+
+func agentDiagnosticsRunnerSchema() map[string]any {
+	return objectSchema(map[string]any{
+		"configured": map[string]any{"type": "boolean"}, "context_resolver": map[string]any{"type": "boolean"},
+		"execution_state": map[string]any{"type": "boolean"}, "transport": stringSchema(),
+	}, "configured", "context_resolver", "execution_state", "transport")
+}
+
+func agentDiagnosticsSkillBindingSchema() map[string]any {
+	return objectSchema(map[string]any{
+		"family": stringSchema(), "skill": stringSchema(), "default_run_mode": stringSchema(),
+	}, "family", "skill", "default_run_mode")
+}
+
+func agentDiagnosticsToolSchema() map[string]any {
+	return objectSchema(map[string]any{
+		"key": stringSchema(), "family": stringSchema(), "run_mode": stringSchema(), "risk_level": stringSchema(),
+		"approval_required": map[string]any{"type": "boolean"}, "allowed": map[string]any{"type": "boolean"},
+		"denial_reason": stringSchema(), "policy_source": stringSchema(),
+	}, "key", "family", "run_mode", "risk_level", "approval_required", "allowed", "denial_reason", "policy_source")
 }
 
 func diagnosticParameters() []any {
@@ -511,4 +556,47 @@ func agentHTTPReferenceParts(reference string) (string, string, bool) {
 		return "", "", false
 	}
 	return parts[0], parts[1], true
+}
+
+func resolveAgentHTTPReferences(value any, components map[string]map[string]json.RawMessage, resolving map[string]bool) any {
+	switch typed := value.(type) {
+	case map[string]any:
+		if reference, ok := typed["$ref"].(string); ok {
+			group, key, local := agentHTTPReferenceParts(reference)
+			if local && !resolving[reference] {
+				if raw, found := components[group][key]; found {
+					var target any
+					if json.Unmarshal(raw, &target) == nil {
+						next := make(map[string]bool, len(resolving)+1)
+						for current := range resolving {
+							next[current] = true
+						}
+						next[reference] = true
+						resolved := resolveAgentHTTPReferences(target, components, next)
+						if object, ok := resolved.(map[string]any); ok {
+							for sibling, child := range typed {
+								if sibling != "$ref" {
+									object[sibling] = resolveAgentHTTPReferences(child, components, resolving)
+								}
+							}
+							return object
+						}
+					}
+				}
+			}
+		}
+		result := make(map[string]any, len(typed))
+		for key, child := range typed {
+			result[key] = resolveAgentHTTPReferences(child, components, resolving)
+		}
+		return result
+	case []any:
+		result := make([]any, len(typed))
+		for index, child := range typed {
+			result[index] = resolveAgentHTTPReferences(child, components, resolving)
+		}
+		return result
+	default:
+		return typed
+	}
 }
