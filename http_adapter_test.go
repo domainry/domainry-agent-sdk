@@ -7,7 +7,7 @@ import (
 	actioncontract "github.com/domainry/domainry-foundation/action"
 )
 
-func TestAgentHTTPSurfaceContractOwnsCompleteRouteCatalog(t *testing.T) {
+func TestAgentHTTPAdapterContractOwnsCompleteRouteCatalog(t *testing.T) {
 	actions, err := AgentAuthorizationActions()
 	if err != nil {
 		t.Fatal(err)
@@ -38,11 +38,11 @@ func TestAgentHTTPSurfaceContractOwnsCompleteRouteCatalog(t *testing.T) {
 		t.Fatalf("Agent role Actions=%d non-HTTP Actions=%d", roleActions, nonHTTPActions)
 	}
 
-	contract, err := CompileAgentHTTPSurfaceContract()
+	contract, err := CompileAgentHTTPAdapterContract()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if contract.ContractVersion != AgentHTTPSurfaceContractVersion || contract.Owner != "agent" || len(contract.Routes) != 22 || len(contract.OpenAPI) != 22 {
+	if contract.ContractVersion != AgentHTTPAdapterContractVersion || contract.Owner != "agent" || len(contract.Routes) != 22 || len(contract.OpenAPI) != 22 {
 		t.Fatalf("Agent HTTP contract=%s owner=%s routes=%d operations=%d", contract.ContractVersion, contract.Owner, len(contract.Routes), len(contract.OpenAPI))
 	}
 	seen := map[string]bool{}
@@ -53,18 +53,18 @@ func TestAgentHTTPSurfaceContractOwnsCompleteRouteCatalog(t *testing.T) {
 		}
 		seen[pattern] = true
 	}
-	stream := contract.OpenAPI["POST /agent-dialog/runs/stream"]
+	stream := contract.OpenAPI["POST /agent/runs/stream"]
 	if stream["requestBody"] == nil || stream["parameters"] == nil || stream["x-domainry-runtime-client-method"] != "runAgentStream" {
 		t.Fatalf("Agent stream operation=%#v", stream)
 	}
-	tool := contract.OpenAPI["POST /agent-dialog/task-tools/invoke"]
+	tool := contract.OpenAPI["POST /agent/task-tools/invoke"]
 	security, ok := tool["security"].([]any)
 	if !ok || len(security) != 0 {
 		t.Fatalf("Agent tool callback security=%#v", tool["security"])
 	}
 	var toolAuthorization actioncontract.Authorization
 	for _, route := range contract.Routes {
-		if route.Pattern() == "POST /agent-dialog/task-tools/invoke" {
+		if route.Pattern() == "POST /agent/task-tools/invoke" {
 			toolAuthorization = route.Action.Authorization
 			break
 		}
@@ -72,7 +72,7 @@ func TestAgentHTTPSurfaceContractOwnsCompleteRouteCatalog(t *testing.T) {
 	if toolAuthorization.Strategy != actioncontract.AuthorizationSigned || toolAuthorization.PolicyKey != "agent.task_tool_credential" {
 		t.Fatalf("Agent tool callback authorization=%+v", toolAuthorization)
 	}
-	components := HTTPSurfaceReferencedComponents(map[string]map[string]any{"POST /agent-dialog/runs": contract.OpenAPI["POST /agent-dialog/runs"]})
+	components := HTTPAdapterReferencedComponents(map[string]map[string]any{"POST /agent/runs": contract.OpenAPI["POST /agent/runs"]})
 	if components["securitySchemes"]["BearerAuth"] == nil || components["schemas"]["AgentInteractiveRunRequest"] == nil || components["schemas"]["AgentInteractiveExecutionResult"] == nil || components["schemas"]["AgentInteractiveRun"] == nil {
 		t.Fatalf("Agent referenced component closure=%v", components)
 	}

@@ -8,7 +8,7 @@ import (
 )
 
 // AgentTaskRunView is the stable, redacted task-run projection shared by the
-// Agent-owned read Surface and Runtime-owned operator mutation responses.
+// Agent-owned read adapter and Runtime-owned operator mutation responses.
 type AgentTaskRunView struct {
 	ID                     string                `json:"id"`
 	ProcessID              string                `json:"process_id,omitempty"`

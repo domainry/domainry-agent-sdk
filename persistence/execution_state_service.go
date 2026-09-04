@@ -97,7 +97,7 @@ type AgentInteractiveStateService interface {
 }
 
 // ExecutionStateBinding exposes deployment-neutral Agent application
-// capabilities to the Agent-owned HTTP surface and worker assembly. Hosts do
+// capabilities to the Agent-owned HTTP adapter and worker assembly. Hosts do
 // not mutate these repositories or reimplement their state transitions.
 type ExecutionStateBinding interface {
 	AgentTaskState() AgentTaskStateService

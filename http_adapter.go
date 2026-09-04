@@ -10,9 +10,9 @@ import (
 )
 
 const (
-	AgentHTTPSurfaceContractVersion = "domainry-agent-http-surface-v2"
-	AgentHTTPSurfaceOwner           = "agent"
-	AgentHTTPSurfaceName            = "dialog_state"
+	AgentHTTPAdapterContractVersion = "domainry-agent-http-adapter-v1"
+	AgentHTTPAdapterOwner           = "agent"
+	AgentHTTPAdapterName            = "dialog_state"
 	AgentAuthorizationOwner         = "module:agent"
 
 	AgentCapabilityDialog        = "agent.dialog"
@@ -63,7 +63,7 @@ func (route HTTPRouteContract) Pattern() string {
 	return route.Action.HTTP.Method + " " + route.Action.HTTP.RouteTemplate
 }
 
-type HTTPSurfaceContract struct {
+type HTTPAdapterContract struct {
 	ContractVersion string                                `json:"contract_version"`
 	Owner           string                                `json:"owner"`
 	Name            string                                `json:"name"`
@@ -77,28 +77,28 @@ type HTTPSurfaceContract struct {
 // reconcile and configuration projections all consume this same batch.
 func AgentAuthorizationActions() ([]actioncontract.ActionDefinition, error) {
 	definitions := []actioncontract.ActionDefinition{
-		agentPrincipalAction(ActionAgentRunsExecute, AgentCapabilityDialog, "Agent dialog and analysis", "Run conversation", "POST /agent-dialog/runs", actioncontract.EffectWrite, "caller_key_required", "agent_interactive_execution"),
-		agentPrincipalAction(ActionAgentRunsStream, AgentCapabilityDialog, "Agent dialog and analysis", "Stream conversation", "POST /agent-dialog/runs/stream", actioncontract.EffectWrite, "caller_key_required", "agent_interactive_execution"),
-		agentPrincipalAction(ActionAgentSessionsList, AgentCapabilityDialog, "Agent dialog and analysis", "List sessions", "GET /agent-dialog/sessions", actioncontract.EffectRead, "not_applicable", "owner_read_audit_policy"),
-		agentPrincipalAction(ActionAgentSessionsUpsert, AgentCapabilityDialog, "Agent dialog and analysis", "Save session", "POST /agent-dialog/sessions", actioncontract.EffectWrite, "not_supported", "mutation_audit_required"),
-		agentPrincipalAction(ActionAgentSessionsArchive, AgentCapabilityDialog, "Agent dialog and analysis", "Archive session", "POST /agent-dialog/sessions/{externalSessionID}/archive", actioncontract.EffectWrite, "natural", "mutation_audit_required"),
-		agentPrincipalAction(ActionAgentSessionsRestore, AgentCapabilityDialog, "Agent dialog and analysis", "Restore session", "POST /agent-dialog/sessions/{externalSessionID}/restore", actioncontract.EffectWrite, "natural", "mutation_audit_required"),
-		agentPrincipalAction(ActionAgentProposalsList, AgentCapabilityProposals, "Agent proposals", "List proposals", "GET /agent-dialog/proposals", actioncontract.EffectRead, "not_applicable", "owner_read_audit_policy"),
-		agentPrincipalAction(ActionAgentProposalsGet, AgentCapabilityProposals, "Agent proposals", "Read proposal", "GET /agent-dialog/proposals/{proposalID}", actioncontract.EffectRead, "not_applicable", "owner_read_audit_policy"),
-		agentPrincipalAction(ActionAgentProposalsCreate, AgentCapabilityProposals, "Agent proposals", "Create proposal", "POST /agent-dialog/proposals", actioncontract.EffectWrite, "not_supported", "mutation_audit_required"),
-		agentPrincipalAction(ActionAgentProposalsApprove, AgentCapabilityProposals, "Agent proposals", "Approve proposal", "POST /agent-dialog/proposals/{proposalID}/approve", actioncontract.EffectWrite, "natural", "mutation_audit_required"),
-		agentPrincipalAction(ActionAgentProposalsReject, AgentCapabilityProposals, "Agent proposals", "Reject proposal", "POST /agent-dialog/proposals/{proposalID}/reject", actioncontract.EffectWrite, "natural", "mutation_audit_required"),
-		agentPrincipalAction(ActionAgentRunsGet, AgentCapabilityDialog, "Agent dialog and analysis", "Read conversation run", "GET /agent-dialog/runs/{runID}", actioncontract.EffectRead, "not_applicable", "owner_read_audit_policy"),
-		agentPrincipalAction(ActionAgentTaskRunsGet, AgentCapabilityDialog, "Agent dialog and analysis", "Read own task run", "GET /agent-dialog/task-runs/{taskRunID}", actioncontract.EffectRead, "not_applicable", "owner_read_audit_policy"),
-		agentDelegatedCredentialAction(ActionAgentTaskToolsInvoke, AgentCapabilityToolGateway, "Agent task tool gateway", "Invoke task tool", "POST /agent-dialog/task-tools/invoke", actioncontract.EffectWrite, "credential_payload_key_required", "credential_scoped_tool_audit"),
-		agentPrincipalAction(ActionAgentAnalysisQuery, AgentCapabilityDialog, "Agent dialog and analysis", "Query analysis", "POST /agent-dialog/analysis/query", actioncontract.EffectRead, "not_applicable", "owner_read_audit_policy"),
-		agentRoleAction(ActionAgentDiagnosticsRead, AgentCapabilityDialog, "Agent dialog and analysis", "Read diagnostics", "GET /agent-dialog/diagnostics", actioncontract.EffectRead, "not_applicable", "owner_read_audit_policy"),
-		agentRoleAction(ActionAgentTasksList, AgentCapabilityOperations, "Agent task operations", "List task runs", "GET /operations/agent/tasks", actioncontract.EffectRead, "not_applicable", "owner_read_audit_policy"),
-		agentRoleAction(ActionAgentTasksGet, AgentCapabilityOperations, "Agent task operations", "Read task run", "GET /operations/agent/tasks/{taskRunID}", actioncontract.EffectRead, "not_applicable", "owner_read_audit_policy"),
-		agentRoleAction(ActionAgentTasksRetry, AgentCapabilityOperations, "Agent task operations", "Retry task run", "POST /operations/agent/tasks/{taskRunID}/retry", actioncontract.EffectWrite, "caller_key_required", "mutation_audit_required"),
-		agentRoleAction(ActionAgentTasksCancel, AgentCapabilityOperations, "Agent task operations", "Cancel task run", "POST /operations/agent/tasks/{taskRunID}/cancel", actioncontract.EffectWrite, "caller_key_required", "mutation_audit_required"),
-		agentRoleAction(ActionAgentTasksResolve, AgentCapabilityOperations, "Agent task operations", "Resolve task run", "POST /operations/agent/tasks/{taskRunID}/resolve", actioncontract.EffectWrite, "caller_key_required", "mutation_audit_required"),
-		agentRoleAction(ActionAgentTasksReconcile, AgentCapabilityOperations, "Agent task operations", "Reconcile task run", "POST /operations/agent/tasks/{taskRunID}/reconcile", actioncontract.EffectWrite, "caller_key_required", "mutation_audit_required"),
+		agentPrincipalAction(ActionAgentRunsExecute, AgentCapabilityDialog, "Agent dialog and analysis", "Run conversation", "POST /agent/runs", actioncontract.EffectWrite, "caller_key_required", "agent_interactive_execution"),
+		agentPrincipalAction(ActionAgentRunsStream, AgentCapabilityDialog, "Agent dialog and analysis", "Stream conversation", "POST /agent/runs/stream", actioncontract.EffectWrite, "caller_key_required", "agent_interactive_execution"),
+		agentPrincipalAction(ActionAgentSessionsList, AgentCapabilityDialog, "Agent dialog and analysis", "List sessions", "GET /agent/sessions", actioncontract.EffectRead, "not_applicable", "owner_read_audit_policy"),
+		agentPrincipalAction(ActionAgentSessionsUpsert, AgentCapabilityDialog, "Agent dialog and analysis", "Save session", "POST /agent/sessions", actioncontract.EffectWrite, "not_supported", "mutation_audit_required"),
+		agentPrincipalAction(ActionAgentSessionsArchive, AgentCapabilityDialog, "Agent dialog and analysis", "Archive session", "POST /agent/sessions/{externalSessionID}/archive", actioncontract.EffectWrite, "natural", "mutation_audit_required"),
+		agentPrincipalAction(ActionAgentSessionsRestore, AgentCapabilityDialog, "Agent dialog and analysis", "Restore session", "POST /agent/sessions/{externalSessionID}/restore", actioncontract.EffectWrite, "natural", "mutation_audit_required"),
+		agentPrincipalAction(ActionAgentProposalsList, AgentCapabilityProposals, "Agent proposals", "List proposals", "GET /agent/proposals", actioncontract.EffectRead, "not_applicable", "owner_read_audit_policy"),
+		agentPrincipalAction(ActionAgentProposalsGet, AgentCapabilityProposals, "Agent proposals", "Read proposal", "GET /agent/proposals/{proposalID}", actioncontract.EffectRead, "not_applicable", "owner_read_audit_policy"),
+		agentPrincipalAction(ActionAgentProposalsCreate, AgentCapabilityProposals, "Agent proposals", "Create proposal", "POST /agent/proposals", actioncontract.EffectWrite, "not_supported", "mutation_audit_required"),
+		agentPrincipalAction(ActionAgentProposalsApprove, AgentCapabilityProposals, "Agent proposals", "Approve proposal", "POST /agent/proposals/{proposalID}/approve", actioncontract.EffectWrite, "natural", "mutation_audit_required"),
+		agentPrincipalAction(ActionAgentProposalsReject, AgentCapabilityProposals, "Agent proposals", "Reject proposal", "POST /agent/proposals/{proposalID}/reject", actioncontract.EffectWrite, "natural", "mutation_audit_required"),
+		agentPrincipalAction(ActionAgentRunsGet, AgentCapabilityDialog, "Agent dialog and analysis", "Read conversation run", "GET /agent/runs/{runID}", actioncontract.EffectRead, "not_applicable", "owner_read_audit_policy"),
+		agentPrincipalAction(ActionAgentTaskRunsGet, AgentCapabilityDialog, "Agent dialog and analysis", "Read own task run", "GET /agent/task-runs/{taskRunID}", actioncontract.EffectRead, "not_applicable", "owner_read_audit_policy"),
+		agentDelegatedCredentialAction(ActionAgentTaskToolsInvoke, AgentCapabilityToolGateway, "Agent task tool gateway", "Invoke task tool", "POST /agent/task-tools/invoke", actioncontract.EffectWrite, "credential_payload_key_required", "credential_scoped_tool_audit"),
+		agentPrincipalAction(ActionAgentAnalysisQuery, AgentCapabilityDialog, "Agent dialog and analysis", "Query analysis", "POST /agent/analysis/query", actioncontract.EffectRead, "not_applicable", "owner_read_audit_policy"),
+		agentRoleAction(ActionAgentDiagnosticsRead, AgentCapabilityDialog, "Agent dialog and analysis", "Read diagnostics", "GET /agent/diagnostics", actioncontract.EffectRead, "not_applicable", "owner_read_audit_policy"),
+		agentRoleAction(ActionAgentTasksList, AgentCapabilityOperations, "Agent task operations", "List task runs", "GET /agent/tasks", actioncontract.EffectRead, "not_applicable", "owner_read_audit_policy"),
+		agentRoleAction(ActionAgentTasksGet, AgentCapabilityOperations, "Agent task operations", "Read task run", "GET /agent/tasks/{taskRunID}", actioncontract.EffectRead, "not_applicable", "owner_read_audit_policy"),
+		agentRoleAction(ActionAgentTasksRetry, AgentCapabilityOperations, "Agent task operations", "Retry task run", "POST /agent/tasks/{taskRunID}/retry", actioncontract.EffectWrite, "caller_key_required", "mutation_audit_required"),
+		agentRoleAction(ActionAgentTasksCancel, AgentCapabilityOperations, "Agent task operations", "Cancel task run", "POST /agent/tasks/{taskRunID}/cancel", actioncontract.EffectWrite, "caller_key_required", "mutation_audit_required"),
+		agentRoleAction(ActionAgentTasksResolve, AgentCapabilityOperations, "Agent task operations", "Resolve task run", "POST /agent/tasks/{taskRunID}/resolve", actioncontract.EffectWrite, "caller_key_required", "mutation_audit_required"),
+		agentRoleAction(ActionAgentTasksReconcile, AgentCapabilityOperations, "Agent task operations", "Reconcile task run", "POST /agent/tasks/{taskRunID}/reconcile", actioncontract.EffectWrite, "caller_key_required", "mutation_audit_required"),
 		agentTaskExecutionAction(ActionAgentTaskExecutionStart, "Start task execution", actioncontract.EffectWrite, "request_idempotency_key"),
 		agentTaskExecutionAction(ActionAgentTaskExecutionPoll, "Poll task execution", actioncontract.EffectRead, "not_applicable"),
 		agentTaskExecutionAction(ActionAgentTaskExecutionCancel, "Cancel task execution", actioncontract.EffectWrite, "request_idempotency_key"),
@@ -114,24 +114,24 @@ func AgentAuthorizationActions() ([]actioncontract.ActionDefinition, error) {
 	return result, nil
 }
 
-// AgentHTTPSurfaceContract returns the statically compiled HTTP projection.
+// AgentHTTPAdapterContract returns the statically compiled HTTP projection.
 // Invalid source-owned definitions are programmer errors and fail immediately;
-// host readiness paths should use CompileAgentHTTPSurfaceContract so they can
+// host readiness paths should use CompileAgentHTTPAdapterContract so they can
 // return a contextual assembly error instead.
-func AgentHTTPSurfaceContract() HTTPSurfaceContract {
-	contract, err := CompileAgentHTTPSurfaceContract()
+func AgentHTTPAdapterContract() HTTPAdapterContract {
+	contract, err := CompileAgentHTTPAdapterContract()
 	if err != nil {
-		panic("compile Agent HTTP Surface contract: " + err.Error())
+		panic("compile Agent HTTP Adapter contract: " + err.Error())
 	}
 	return contract
 }
 
-// CompileAgentHTTPSurfaceContract validates and projects the source-owned
+// CompileAgentHTTPAdapterContract validates and projects the source-owned
 // Action manifest for host assembly and readiness checks.
-func CompileAgentHTTPSurfaceContract() (HTTPSurfaceContract, error) {
+func CompileAgentHTTPAdapterContract() (HTTPAdapterContract, error) {
 	definitions, err := AgentAuthorizationActions()
 	if err != nil {
-		return HTTPSurfaceContract{}, err
+		return HTTPAdapterContract{}, err
 	}
 	routes := make([]HTTPRouteContract, 0, 22)
 	patterns := map[string]bool{}
@@ -142,40 +142,40 @@ func CompileAgentHTTPSurfaceContract() (HTTPSurfaceContract, error) {
 		route := HTTPRouteContract{Action: definition}
 		pattern := route.Pattern()
 		if patterns[pattern] {
-			return HTTPSurfaceContract{}, fmt.Errorf("Agent HTTP manifest repeats %q", pattern)
+			return HTTPAdapterContract{}, fmt.Errorf("Agent HTTP manifest repeats %q", pattern)
 		}
 		patterns[pattern] = true
 		routes = append(routes, route)
 	}
-	operations := agentHTTPSurfaceOperations()
+	operations := agentHTTPAdapterOperations()
 	for pattern := range patterns {
 		if len(operations[pattern]) == 0 {
-			return HTTPSurfaceContract{}, fmt.Errorf("Agent Action route %q has no OpenAPI operation", pattern)
+			return HTTPAdapterContract{}, fmt.Errorf("Agent Action route %q has no OpenAPI operation", pattern)
 		}
 	}
 	for pattern := range operations {
 		if !patterns[pattern] {
-			return HTTPSurfaceContract{}, fmt.Errorf("Agent OpenAPI operation %q has no Action route", pattern)
+			return HTTPAdapterContract{}, fmt.Errorf("Agent OpenAPI operation %q has no Action route", pattern)
 		}
 	}
-	return HTTPSurfaceContract{
-		ContractVersion: AgentHTTPSurfaceContractVersion,
-		Owner:           AgentHTTPSurfaceOwner,
-		Name:            AgentHTTPSurfaceName,
+	return HTTPAdapterContract{
+		ContractVersion: AgentHTTPAdapterContractVersion,
+		Owner:           AgentHTTPAdapterOwner,
+		Name:            AgentHTTPAdapterName,
 		Routes:          routes,
 		OpenAPI:         operations,
 		Components:      agentHTTPComponents(),
 	}, nil
 }
 
-func HTTPSurfaceOpenAPIOperations() map[string]map[string]any {
-	return AgentHTTPSurfaceContract().OpenAPI
+func HTTPAdapterOpenAPIOperations() map[string]map[string]any {
+	return AgentHTTPAdapterContract().OpenAPI
 }
 
-// HTTPSurfaceReferencedComponents returns the exact transitive component
+// HTTPAdapterReferencedComponents returns the exact transitive component
 // closure used by the selected operations. Capability categories use it to
 // avoid returning unrelated Agent schemas in every bounded batch.
-func HTTPSurfaceReferencedComponents(operations map[string]map[string]any) map[string]map[string]json.RawMessage {
+func HTTPAdapterReferencedComponents(operations map[string]map[string]any) map[string]map[string]json.RawMessage {
 	all := agentHTTPComponents()
 	wanted := map[string]bool{}
 	for _, operation := range operations {
@@ -226,7 +226,7 @@ func agentDelegatedCredentialAction(key, capabilityKey, capabilityLabel, operati
 }
 
 func agentRoleAction(key, capabilityKey, capabilityLabel, operationLabel, pattern string, effect actioncontract.EffectClass, idempotency, audit string) actioncontract.ActionDefinition {
-	return agentHTTPAction(key, capabilityKey, capabilityLabel, operationLabel, pattern, []actioncontract.Exposure{actioncontract.ExposureTenantAdmin, actioncontract.ExposureOps}, effect, idempotency, audit, actioncontract.AuthorizationAuthenticated, true)
+	return agentHTTPAction(key, capabilityKey, capabilityLabel, operationLabel, pattern, []actioncontract.Exposure{actioncontract.ExposureManagement, actioncontract.ExposureOps}, effect, idempotency, audit, actioncontract.AuthorizationAuthenticated, true)
 }
 
 func agentHTTPAction(key, capabilityKey, capabilityLabel, operationLabel, pattern string, exposures []actioncontract.Exposure, effect actioncontract.EffectClass, idempotency, audit string, strategy actioncontract.AuthorizationStrategy, requirePermission bool) actioncontract.ActionDefinition {
@@ -237,7 +237,7 @@ func agentHTTPAction(key, capabilityKey, capabilityLabel, operationLabel, patter
 		risk = actioncontract.RiskLow
 	}
 	definition := actioncontract.ActionDefinition{
-		Key: key, Owner: AgentAuthorizationOwner, SourceKind: "module_surface", CapabilityKey: capabilityKey, CapabilityLabel: capabilityLabel,
+		Key: key, Owner: AgentAuthorizationOwner, SourceKind: "module_http", CapabilityKey: capabilityKey, CapabilityLabel: capabilityLabel,
 		OperationKey: key[separator+1:], OperationLabel: operationLabel, Label: operationLabel, Exposures: exposures,
 		HTTP: &actioncontract.HTTPBinding{Method: method, RouteTemplate: path}, EffectClass: effect, RiskLevel: risk,
 		IdempotencyDecision: idempotency, AuditClass: audit, LifecycleStatus: actioncontract.LifecycleActive,
@@ -261,7 +261,7 @@ func agentTaskExecutionAction(key, operationLabel string, effect actioncontract.
 		risk = actioncontract.RiskLow
 	}
 	return actioncontract.ActionDefinition{
-		Key: key, Owner: AgentAuthorizationOwner, SourceKind: "module_surface",
+		Key: key, Owner: AgentAuthorizationOwner, SourceKind: "module_http",
 		CapabilityKey: AgentCapabilityTaskExecution, CapabilityLabel: "Agent task execution",
 		OperationKey: key[separator+1:], OperationLabel: operationLabel, Label: operationLabel,
 		Exposures:     []actioncontract.Exposure{actioncontract.ExposureOps},
@@ -272,44 +272,44 @@ func agentTaskExecutionAction(key, operationLabel string, effect actioncontract.
 	}
 }
 
-func agentHTTPSurfaceOperations() map[string]map[string]any {
+func agentHTTPAdapterOperations() map[string]map[string]any {
 	operations := map[string]map[string]any{}
-	operations["POST /agent-dialog/runs"] = agentOperation("runAgent", "Run one authenticated Agent conversation turn", bearerSecurity(), []any{headerParameter("Idempotency-Key", false)}, schemaReference("AgentInteractiveRunRequest"), true, "200", schemaReference("AgentInteractiveExecutionResult"))
-	operations["POST /agent-dialog/runs/stream"] = agentOperation("runAgentStream", "Stream one authenticated Agent conversation turn", bearerSecurity(), []any{headerParameter("Idempotency-Key", false), headerParameter("Last-Event-ID", false)}, schemaReference("AgentInteractiveRunRequest"), true, "200", map[string]any{"type": "string"})
-	operations["POST /agent-dialog/runs/stream"]["responses"] = map[string]any{
+	operations["POST /agent/runs"] = agentOperation("runAgent", "Run one authenticated Agent conversation turn", bearerSecurity(), []any{headerParameter("Idempotency-Key", false)}, schemaReference("AgentInteractiveRunRequest"), true, "200", schemaReference("AgentInteractiveExecutionResult"))
+	operations["POST /agent/runs/stream"] = agentOperation("runAgentStream", "Stream one authenticated Agent conversation turn", bearerSecurity(), []any{headerParameter("Idempotency-Key", false), headerParameter("Last-Event-ID", false)}, schemaReference("AgentInteractiveRunRequest"), true, "200", map[string]any{"type": "string"})
+	operations["POST /agent/runs/stream"]["responses"] = map[string]any{
 		"200": map[string]any{"description": "Agent server-sent event stream", "content": map[string]any{"text/event-stream": map[string]any{"schema": map[string]any{"type": "string"}}}},
 		"400": errorResponse("Invalid Agent request"), "403": errorResponse("Agent access denied"), "409": errorResponse("Invalid stream cursor or conflicting run"),
 	}
-	operations["POST /agent-dialog/runs/stream"]["x-domainry-runtime-client-method"] = "runAgentStream"
+	operations["POST /agent/runs/stream"]["x-domainry-runtime-client-method"] = "runAgentStream"
 
-	operations["GET /agent-dialog/sessions"] = agentOperation("listAgentSessions", "List the current principal's Agent sessions", bearerSecurity(), []any{
+	operations["GET /agent/sessions"] = agentOperation("listAgentSessions", "List the current principal's Agent sessions", bearerSecurity(), []any{
 		queryParameter("q", map[string]any{"type": "string"}), queryParameter("object_key", map[string]any{"type": "string"}), queryParameter("record_id", map[string]any{"type": "string"}), queryParameter("archived", map[string]any{"type": "boolean"}), queryParameter("limit", map[string]any{"type": "integer", "minimum": 1, "maximum": 100}),
 	}, nil, false, "200", schemaReference("AgentSessionList"))
-	operations["POST /agent-dialog/sessions"] = agentOperation("upsertAgentSession", "Create or update an Agent session", bearerSecurity(), nil, schemaReference("AgentSessionUpsertRequest"), true, "200", schemaReference("AgentSession"))
-	operations["POST /agent-dialog/sessions/{externalSessionID}/archive"] = agentOperation("archiveAgentSession", "Archive an Agent session", bearerSecurity(), []any{pathParameter("externalSessionID")}, nil, false, "200", schemaReference("AgentSession"))
-	operations["POST /agent-dialog/sessions/{externalSessionID}/restore"] = agentOperation("restoreAgentSession", "Restore an Agent session", bearerSecurity(), []any{pathParameter("externalSessionID")}, nil, false, "200", schemaReference("AgentSession"))
+	operations["POST /agent/sessions"] = agentOperation("upsertAgentSession", "Create or update an Agent session", bearerSecurity(), nil, schemaReference("AgentSessionUpsertRequest"), true, "200", schemaReference("AgentSession"))
+	operations["POST /agent/sessions/{externalSessionID}/archive"] = agentOperation("archiveAgentSession", "Archive an Agent session", bearerSecurity(), []any{pathParameter("externalSessionID")}, nil, false, "200", schemaReference("AgentSession"))
+	operations["POST /agent/sessions/{externalSessionID}/restore"] = agentOperation("restoreAgentSession", "Restore an Agent session", bearerSecurity(), []any{pathParameter("externalSessionID")}, nil, false, "200", schemaReference("AgentSession"))
 
-	operations["GET /agent-dialog/proposals"] = agentOperation("listAgentProposals", "List the current principal's Agent proposals", bearerSecurity(), []any{queryParameter("status", map[string]any{"type": "string"})}, nil, false, "200", schemaReference("AgentProposalList"))
-	operations["GET /agent-dialog/proposals/{proposalID}"] = agentOperation("getAgentProposal", "Read one Agent proposal", bearerSecurity(), []any{pathParameter("proposalID")}, nil, false, "200", schemaReference("AgentProposal"))
-	operations["POST /agent-dialog/proposals"] = agentOperation("createAgentProposal", "Create an Agent proposal under the current run policy", bearerSecurity(), nil, schemaReference("AgentProposalCreateRequest"), true, "201", schemaReference("AgentProposal"))
-	operations["POST /agent-dialog/proposals/{proposalID}/approve"] = agentOperation("approveAgentProposal", "Approve and execute an Agent proposal", bearerSecurity(), []any{pathParameter("proposalID")}, schemaReference("AgentProposalDecisionRequest"), false, "200", schemaReference("AgentProposal"))
-	operations["POST /agent-dialog/proposals/{proposalID}/reject"] = agentOperation("rejectAgentProposal", "Reject an Agent proposal", bearerSecurity(), []any{pathParameter("proposalID")}, schemaReference("AgentProposalDecisionRequest"), false, "200", schemaReference("AgentProposal"))
+	operations["GET /agent/proposals"] = agentOperation("listAgentProposals", "List the current principal's Agent proposals", bearerSecurity(), []any{queryParameter("status", map[string]any{"type": "string"})}, nil, false, "200", schemaReference("AgentProposalList"))
+	operations["GET /agent/proposals/{proposalID}"] = agentOperation("getAgentProposal", "Read one Agent proposal", bearerSecurity(), []any{pathParameter("proposalID")}, nil, false, "200", schemaReference("AgentProposal"))
+	operations["POST /agent/proposals"] = agentOperation("createAgentProposal", "Create an Agent proposal under the current run policy", bearerSecurity(), nil, schemaReference("AgentProposalCreateRequest"), true, "201", schemaReference("AgentProposal"))
+	operations["POST /agent/proposals/{proposalID}/approve"] = agentOperation("approveAgentProposal", "Approve and execute an Agent proposal", bearerSecurity(), []any{pathParameter("proposalID")}, schemaReference("AgentProposalDecisionRequest"), false, "200", schemaReference("AgentProposal"))
+	operations["POST /agent/proposals/{proposalID}/reject"] = agentOperation("rejectAgentProposal", "Reject an Agent proposal", bearerSecurity(), []any{pathParameter("proposalID")}, schemaReference("AgentProposalDecisionRequest"), false, "200", schemaReference("AgentProposal"))
 
-	operations["GET /agent-dialog/runs/{runID}"] = agentOperation("getAgentRun", "Read one principal-owned Agent conversation run", bearerSecurity(), []any{pathParameter("runID")}, nil, false, "200", schemaReference("AgentInteractiveRun"))
-	operations["GET /agent-dialog/task-runs/{taskRunID}"] = agentOperation("getAgentTaskRun", "Read one principal-owned Agent task run", bearerSecurity(), []any{pathParameter("taskRunID")}, nil, false, "200", schemaReference("AgentTaskRunView"))
-	operations["POST /agent-dialog/task-tools/invoke"] = agentOperation("invokeAgentTaskTool", "Invoke a credential-scoped Agent task tool", []any{}, nil, schemaReference("AgentTaskToolInvokeRequest"), true, "200", schemaReference("AgentTaskToolResult"))
-	operations["POST /agent-dialog/analysis/query"] = agentOperation("queryAgentAnalysis", "Run a principal-scoped Agent analysis query", bearerSecurity(), nil, schemaReference("AgentAnalysisQueryRequest"), true, "200", schemaReference("AgentAnalysisResult"))
-	operations["POST /agent-dialog/analysis/query"]["x-domainry-runtime-client-method"] = "queryAgentAnalysis"
-	operations["GET /agent-dialog/diagnostics"] = agentOperation("getAgentDiagnostics", "Inspect Agent configuration, policies, proposal state, and execution evidence", bearerSecurity(), diagnosticParameters(), nil, false, "200", schemaReference("AgentDiagnosticsResult"))
+	operations["GET /agent/runs/{runID}"] = agentOperation("getAgentRun", "Read one principal-owned Agent conversation run", bearerSecurity(), []any{pathParameter("runID")}, nil, false, "200", schemaReference("AgentInteractiveRun"))
+	operations["GET /agent/task-runs/{taskRunID}"] = agentOperation("getAgentTaskRun", "Read one principal-owned Agent task run", bearerSecurity(), []any{pathParameter("taskRunID")}, nil, false, "200", schemaReference("AgentTaskRunView"))
+	operations["POST /agent/task-tools/invoke"] = agentOperation("invokeAgentTaskTool", "Invoke a credential-scoped Agent task tool", []any{}, nil, schemaReference("AgentTaskToolInvokeRequest"), true, "200", schemaReference("AgentTaskToolResult"))
+	operations["POST /agent/analysis/query"] = agentOperation("queryAgentAnalysis", "Run a principal-scoped Agent analysis query", bearerSecurity(), nil, schemaReference("AgentAnalysisQueryRequest"), true, "200", schemaReference("AgentAnalysisResult"))
+	operations["POST /agent/analysis/query"]["x-domainry-runtime-client-method"] = "queryAgentAnalysis"
+	operations["GET /agent/diagnostics"] = agentOperation("getAgentDiagnostics", "Inspect Agent configuration, policies, proposal state, and execution evidence", bearerSecurity(), diagnosticParameters(), nil, false, "200", schemaReference("AgentDiagnosticsResult"))
 
-	operations["GET /operations/agent/tasks"] = agentOperation("listAgentTasks", "List Agent task runs for operators", bearerSecurity(), []any{
+	operations["GET /agent/tasks"] = agentOperation("listAgentTasks", "List Agent task runs for operators", bearerSecurity(), []any{
 		queryArrayParameter("status"), queryParameter("process_id", map[string]any{"type": "string"}), queryParameter("task_key", map[string]any{"type": "string"}), queryParameter("limit", map[string]any{"type": "integer", "minimum": 1}),
 	}, nil, false, "200", schemaReference("AgentTaskRunList"))
-	operations["GET /operations/agent/tasks/{taskRunID}"] = agentOperation("getAgentOperationalTask", "Inspect one Agent task run", bearerSecurity(), []any{pathParameter("taskRunID")}, nil, false, "200", schemaReference("AgentTaskRunView"))
+	operations["GET /agent/tasks/{taskRunID}"] = agentOperation("getAgentOperationalTask", "Inspect one Agent task run", bearerSecurity(), []any{pathParameter("taskRunID")}, nil, false, "200", schemaReference("AgentTaskRunView"))
 	for _, operation := range []struct{ suffix, id, summary string }{
 		{"retry", "retryAgentTask", "Retry one Agent task run"}, {"cancel", "cancelAgentTask", "Cancel one Agent task run"}, {"resolve", "resolveAgentTask", "Resolve one Agent task run"}, {"reconcile", "reconcileAgentTask", "Reconcile one Agent task run with its workflow callback"},
 	} {
-		pattern := "POST /operations/agent/tasks/{taskRunID}/" + operation.suffix
+		pattern := "POST /agent/tasks/{taskRunID}/" + operation.suffix
 		operations[pattern] = agentOperation(operation.id, operation.summary, bearerSecurity(), []any{pathParameter("taskRunID"), headerParameter("Idempotency-Key", true)}, schemaReference("AgentTaskOperationRequest"), true, "200", schemaReference("AgentTaskOperationResult"))
 	}
 	return operations
