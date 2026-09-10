@@ -19,22 +19,19 @@ func VerifyBinding(t *testing.T, binding agentsdk.Binding, mode agentsdk.Deploym
 	if descriptor.Mode != mode {
 		t.Fatalf("mode=%q want=%q", descriptor.Mode, mode)
 	}
-	required := map[string]bool{"task.start": false, "task.poll": false, "task.cancel": false, "interactive.run": false}
-	for _, capability := range descriptor.Capabilities {
-		if _, ok := required[capability]; ok {
-			required[capability] = true
-		}
+	if descriptor.HasCapability(agentsdk.CapabilityTaskStart) && binding.TaskRunner() == nil {
+		t.Fatal("advertised TaskRunner is unavailable")
 	}
-	for capability, present := range required {
-		if !present {
-			t.Fatalf("capability %q missing", capability)
-		}
-	}
-	if binding.TaskRunner() == nil || binding.InteractiveRunner() == nil {
-		t.Fatal("Agent Binding runners are incomplete")
+	if descriptor.HasCapability(agentsdk.CapabilityInteractiveRun) && binding.InteractiveRunner() == nil {
+		t.Fatal("advertised InteractiveRunner is unavailable")
 	}
 	for _, capability := range descriptor.Capabilities {
 		switch capability {
+		case agentsdk.CapabilityConversationV1:
+			conversation, ok := binding.(agentsdk.ConversationBinding)
+			if !ok || conversation.Conversations() == nil {
+				t.Fatal("advertised conversation service is unavailable")
+			}
 		case "dialog.state":
 			stateBinding, ok := binding.(agentsdk.AgentDialogStateBinding)
 			if !ok || stateBinding.DialogState() == nil {

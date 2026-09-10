@@ -13,8 +13,8 @@ func TestAgentHTTPAdapterContractOwnsCompleteRouteCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(actions) != 25 {
-		t.Fatalf("Agent Action count=%d want=25", len(actions))
+	if len(actions) != 72+len(ConversationToolActions()) {
+		t.Fatalf("Agent Action count=%d", len(actions))
 	}
 	roleActions, nonHTTPActions := 0, 0
 	for _, action := range actions {
@@ -26,7 +26,11 @@ func TestAgentHTTPAdapterContractOwnsCompleteRouteCatalog(t *testing.T) {
 		}
 		if action.HTTP == nil {
 			nonHTTPActions++
-			if len(action.NonHTTP) != 1 || action.Authorization.Strategy != actioncontract.AuthorizationSigned {
+			strategy := actioncontract.AuthorizationSigned
+			if strings.HasPrefix(action.Key, ConversationToolActionPrefix) {
+				strategy = actioncontract.AuthorizationAuthenticated
+			}
+			if len(action.NonHTTP) != 1 || action.Authorization.Strategy != strategy {
 				t.Fatalf("Agent non-HTTP Action %q binding=%v authorization=%+v", action.Key, action.NonHTTP, action.Authorization)
 			}
 		}
@@ -35,7 +39,7 @@ func TestAgentHTTPAdapterContractOwnsCompleteRouteCatalog(t *testing.T) {
 			t.Fatalf("Agent Action %q operation=%q", action.Key, action.OperationKey)
 		}
 	}
-	if roleActions != 7 || nonHTTPActions != 3 {
+	if roleActions != 27+len(ConversationToolActions()) || nonHTTPActions != 3+len(ConversationToolActions()) {
 		t.Fatalf("Agent role Actions=%d non-HTTP Actions=%d", roleActions, nonHTTPActions)
 	}
 
@@ -43,7 +47,7 @@ func TestAgentHTTPAdapterContractOwnsCompleteRouteCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if contract.ContractVersion != AgentHTTPAdapterContractVersion || contract.Owner != "agent" || len(contract.Routes) != 22 || len(contract.OpenAPI) != 22 {
+	if contract.ContractVersion != AgentHTTPAdapterContractVersion || contract.Owner != "agent" || len(contract.Routes) != 69 || len(contract.OpenAPI) != 69 {
 		t.Fatalf("Agent HTTP contract=%s owner=%s routes=%d operations=%d", contract.ContractVersion, contract.Owner, len(contract.Routes), len(contract.OpenAPI))
 	}
 	seen := map[string]bool{}

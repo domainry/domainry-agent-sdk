@@ -38,3 +38,28 @@ func TestServiceActionAuthorizationIsExactAndAudienceBound(t *testing.T) {
 		t.Fatal("missing service Action evidence was accepted")
 	}
 }
+
+func TestDescriptorSupportsIndependentConversationCapabilities(t *testing.T) {
+	for _, capabilities := range [][]string{
+		{CapabilityConversationV1},
+		{CapabilityConversationV1, CapabilityConversationStreamV1},
+		{CapabilityInteractiveRun},
+		{CapabilityTaskStart, CapabilityTaskPoll, CapabilityTaskCancel},
+	} {
+		descriptor := Descriptor{ProtocolVersion: ProtocolVersionV1, Mode: DeploymentModeSaaS, Capabilities: capabilities}
+		if err := descriptor.Validate(); err != nil {
+			t.Fatalf("valid capability subset %v: %v", capabilities, err)
+		}
+	}
+	for _, capabilities := range [][]string{
+		{}, {CapabilityConversationStreamV1}, {CapabilityTaskPoll},
+		{CapabilityTaskStart, CapabilityTaskCancel},
+		{CapabilityConversationV1, CapabilityTaskStart},
+		{CapabilityInteractiveRun, CapabilityConversationStreamV1},
+	} {
+		descriptor := Descriptor{ProtocolVersion: ProtocolVersionV1, Mode: DeploymentModeSaaS, Capabilities: capabilities}
+		if err := descriptor.Validate(); err == nil {
+			t.Fatalf("invalid capability dependencies accepted: %v", capabilities)
+		}
+	}
+}

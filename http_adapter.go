@@ -103,6 +103,8 @@ func AgentAuthorizationActions() ([]actioncontract.ActionDefinition, error) {
 		agentTaskExecutionAction(ActionAgentTaskExecutionPoll, "Poll task execution", actioncontract.EffectRead, "not_applicable"),
 		agentTaskExecutionAction(ActionAgentTaskExecutionCancel, "Cancel task execution", actioncontract.EffectWrite, "request_idempotency_key"),
 	}
+	definitions = append(definitions, conversationActions()...)
+	definitions = append(definitions, ConversationToolActions()...)
 	result := make([]actioncontract.ActionDefinition, 0, len(definitions))
 	for _, definition := range definitions {
 		normalized, err := actioncontract.NormalizeDefinition(definition)
@@ -148,6 +150,9 @@ func CompileAgentHTTPAdapterContract() (HTTPAdapterContract, error) {
 		routes = append(routes, route)
 	}
 	operations := agentHTTPAdapterOperations()
+	for pattern, operation := range ConversationOpenAPIOperations() {
+		operations[pattern] = operation
+	}
 	for pattern := range patterns {
 		if len(operations[pattern]) == 0 {
 			return HTTPAdapterContract{}, fmt.Errorf("Agent Action route %q has no OpenAPI operation", pattern)

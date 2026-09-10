@@ -88,21 +88,18 @@ func (d Descriptor) Validate() error {
 	if d.Mode != DeploymentModeModule && d.Mode != DeploymentModeSaaS {
 		return fmt.Errorf("invalid Agent deployment mode %q", d.Mode)
 	}
-	required := map[string]bool{
-		CapabilityTaskStart:      false,
-		CapabilityTaskPoll:       false,
-		CapabilityTaskCancel:     false,
-		CapabilityInteractiveRun: false,
+	if !d.HasCapability(CapabilityTaskStart) && !d.HasCapability(CapabilityInteractiveRun) && !d.HasCapability(CapabilityConversationV1) {
+		return fmt.Errorf("Agent must advertise at least one execution capability")
 	}
-	for _, capability := range d.Capabilities {
-		if _, ok := required[strings.TrimSpace(capability)]; ok {
-			required[strings.TrimSpace(capability)] = true
+	if d.HasCapability(CapabilityTaskStart) || d.HasCapability(CapabilityTaskPoll) || d.HasCapability(CapabilityTaskCancel) {
+		for _, capability := range []string{CapabilityTaskStart, CapabilityTaskPoll, CapabilityTaskCancel} {
+			if !d.HasCapability(capability) {
+				return fmt.Errorf("Agent task capability %q is required", capability)
+			}
 		}
 	}
-	for capability, present := range required {
-		if !present {
-			return fmt.Errorf("Agent capability %q is required", capability)
-		}
+	if d.HasCapability(CapabilityConversationStreamV1) && !d.HasCapability(CapabilityConversationV1) {
+		return fmt.Errorf("conversation streaming requires conversation.v1")
 	}
 	return nil
 }

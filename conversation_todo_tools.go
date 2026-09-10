@@ -1,0 +1,23 @@
+package agentsdk
+
+import "encoding/json"
+
+func personalTodoTools() []ConversationToolDefinition {
+	item := `{"type":"object","properties":{"title":{"type":"string","minLength":1,"maxLength":128},"description":{"type":"string","maxLength":1024},"due_date":{"type":"string","format":"date"},"due_at":{"type":"string","format":"date-time"},"timezone":{"type":"string","minLength":1,"maxLength":128}},"required":["title","timezone"],"additionalProperties":false}`
+	definitions := []struct{ key, effect, description, input string }{
+		{"todo_create", "write", "Create 1 to 20 personal todos requested by the user as one atomic ordered batch. Supply a concrete title (at most 128 UTF-8 bytes), optional description (1024 bytes), and IANA timezone. Due_date is YYYY-MM-DD, due_at is RFC3339 with an offset matching the named zone; provide at most one. Resolve relative dates using time_now; ask_user if the intended date or task is ambiguous. Returns stable batch_id and positions; preserve those positions when presenting the numbered list. Returned items omit descriptions; todo_get reads complete content.", `{"type":"object","properties":{"items":{"type":"array","minItems":1,"maxItems":20,"items":` + item + `}},"required":["items"],"additionalProperties":false}`},
+		{"todo_list", "read", "Find current-user todos by literal title/description query, status, batch_id or scope. scope=current_conversation finds batches originating in this conversation; default scope=all. Results order newest batch first, then original position. For 'change the second item', find the relevant batch, read position=2 even if earlier items were completed, then use its actual id/revision. Do not renumber positions after deletions, guess IDs or choose between ambiguous batches; use ask_user. Follow next_cursor until complete=true; concurrent edits can require refreshing the list.", `{"type":"object","properties":{"query":{"type":"string","maxLength":256},"status":{"enum":["all","open","completed"]},"scope":{"enum":["all","current_conversation"]},"batch_id":{"type":"string","maxLength":96},"cursor":{"type":"string","maxLength":2048},"limit":{"type":"integer","minimum":1,"maximum":20}},"additionalProperties":false}`},
+		{"todo_get", "read", "Read a current-user todo by an id actually returned by todo_create or todo_list. Includes full description, original batch position, deadline/timezone, status, revision and source references.", `{"type":"object","properties":{"id":{"type":"string","minLength":1,"maxLength":96}},"required":["id"],"additionalProperties":false}`},
+		{"todo_update", "write", "Update one requested todo using its current id and expected_revision. patch may change title, description, status (completed or open to reopen), due_date, due_at or timezone. Setting due_date clears due_at and vice versa; use an empty string to remove a deadline. New instants need an offset consistent with the timezone. A revision conflict requires reading current state and reconsidering the change. Never guess the target of an ambiguous 'second item'.", `{"type":"object","properties":{"id":{"type":"string","minLength":1,"maxLength":96},"expected_revision":{"type":"integer","minimum":1},"patch":{"type":"object","minProperties":1,"properties":{"title":{"type":"string","minLength":1,"maxLength":128},"description":{"type":"string","maxLength":1024},"status":{"enum":["open","completed"]},"due_date":{"type":"string","maxLength":10},"due_at":{"type":"string","maxLength":64},"timezone":{"type":"string","minLength":1,"maxLength":128}},"additionalProperties":false}},"required":["id","expected_revision","patch"],"additionalProperties":false}`},
+		{"todo_delete", "write", "Delete a personal todo only when requested, using its actual id and current expected_revision. Completion is a status update, not deletion. Other items in the original batch keep their original positions.", `{"type":"object","properties":{"id":{"type":"string","minLength":1,"maxLength":96},"expected_revision":{"type":"integer","minimum":1}},"required":["id","expected_revision"],"additionalProperties":false}`},
+	}
+	out := make([]ConversationToolDefinition, 0, len(definitions))
+	for _, d := range definitions {
+		idempotency := "natural"
+		if d.effect == "write" {
+			idempotency = "key"
+		}
+		out = append(out, ConversationToolDefinition{Key: d.key, Version: "1", Description: d.description, InputSchema: json.RawMessage(d.input), OutputSchema: json.RawMessage(`{"type":"object"}`), ActionKey: ConversationToolActionPrefix + d.key, Effect: d.effect, Idempotency: idempotency, TimeoutMillis: 10000, MaxOutputBytes: 32768})
+	}
+	return out
+}
