@@ -101,6 +101,20 @@ catalog and permission manifest for implemented read tools. Registering an
 Action does not grant it to a user. These additions do not add mandatory methods
 to existing `Binding`, `ConversationModel` or `ConversationRepository` ports.
 
+`ConversationToolAvailability` optionally supplies live connection state and
+tool switches. Agent filters the authorized host catalog through this policy
+before freezing each model step, checks it again after concrete authorization,
+and prevents disconnected business/knowledge sources from being called during
+historical-result revalidation. Return true only for enabled tools with usable
+connections in the supplied runtime/workspace/user scope, including explicit
+true for local tools. Return false for disabled, disconnected, expired or
+unknown state; errors fail closed with a sanitized public code. Checks have a
+bounded context and must not refresh credentials or perform tool effects.
+The policy only removes registered tools; it cannot grant permissions or change
+their schemas, effects, timeouts, result limits or idempotency strategies.
+Existing hosts without this optional port retain their host-owned catalog and
+authorization behavior. Account management/refresh remains a host responsibility.
+
 `ConversationBusinessSource` supplies scoped business discovery and reads,
 including typed filters, field selection, page/cursor results and revalidation
 of saved evidence. Cursors are read positions, not grants; hosts still resolve
