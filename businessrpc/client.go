@@ -142,7 +142,7 @@ func safeCode(code, class string) string {
 	switch code {
 	case "business_action_changed", "business_action_invalid", "business_record_version_conflict", "business_action_assurance_required", "business_action_receipt_conflict":
 		return code
-	case "backend.report.analysis.result_limit_exceeded","backend.report.analysis.spec_invalid","backend.report.analysis.arithmetic_limit","backend.report.analysis.source_changed","backend.report.analysis.result_stale_or_invalid":
+	case "backend.report.analysis.result_limit_exceeded", "backend.report.analysis.spec_invalid", "backend.report.analysis.arithmetic_limit", "backend.report.analysis.source_changed", "backend.report.analysis.result_stale_or_invalid":
 		return code
 	}
 	return "agent.business_host." + class

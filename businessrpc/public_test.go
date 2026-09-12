@@ -15,4 +15,5 @@ var (
 	_ sdk.ConversationBusinessEvidenceSealer = (*businessrpc.Client)(nil)
 	_ sdk.ConversationToolAuthorizer         = (*businessrpc.Client)(nil)
 	_ businessrpc.ReportReader               = (*businessrpc.Client)(nil)
+	_ businessrpc.AnalysisReader             = (*businessrpc.Client)(nil)
 )

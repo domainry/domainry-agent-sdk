@@ -226,7 +226,7 @@ func TestHTTPBusinessProfilePreservesAllPorts(t *testing.T) {
 	}
 	for _, m := range methods {
 		key := m.key
-		if key == "tool_authorize" || reportOperation(key) {
+		if key == "tool_authorize" || reportOperation(key) || analysisOperation(key) {
 			continue
 		}
 		if b.count(key) != 1 {

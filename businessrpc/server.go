@@ -84,7 +84,7 @@ func NewHandler(o ServerOptions) (http.Handler, error) {
 		// They are host ports, not published conversation tools. They still passed
 		// scope and current execution authorization above; ReportReader must resolve
 		// current Identity again and invoke its actual Report owner.
-		if !reportOperation(in.Operation)&&!analysisOperation(in.Operation) {
+		if !reportOperation(in.Operation) && !analysisOperation(in.Operation) {
 			tool, err := operationTool(in)
 			if err != nil {
 				writeFailure(w, err)
@@ -126,7 +126,7 @@ func writeFailure(w http.ResponseWriter, err error) {
 	}
 	code := "agent.business_host." + class
 	if coded != nil {
-		code=safeCode(coded.Code,class)
+		code = safeCode(coded.Code, class)
 	}
 	status := map[string]int{"bad_request": 400, "forbidden": 403, "not_found": 404, "conflict": 409, "unavailable": 503}[class]
 	writeJSON(w, status, response{Error: &wireError{Class: class, Code: code}})
