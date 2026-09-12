@@ -11,6 +11,7 @@ import (
 
 	action "github.com/domainry/domainry-foundation/action"
 	"github.com/domainry/domainry-foundation/modulehttp"
+	"github.com/domainry/domainry-foundation/requestcontext"
 	identity "github.com/domainry/domainry-identity-sdk"
 )
 
@@ -60,9 +61,8 @@ func (b *boundary) modulePrincipal(next http.Handler) http.Handler {
 			return
 		}
 		principal := current.Principal
-		resolved, err := b.options.Identity.Principals().Resolve(r.Context(), identity.PrincipalResolutionRequest{
-			Application: identity.ApplicationScope{WorkspaceID: identity.WorkspaceID(principal.WorkspaceID), ApplicationKey: identity.ApplicationKey(b.options.ApplicationKey)},
-			SubjectID:   identity.SubjectID(principal.UserID), RoleKey: principal.RoleKey,
+		resolved, err := b.options.Identity.Principals().Resolve(requestcontext.WithWorkspaceID(r.Context(), principal.WorkspaceID), identity.PrincipalResolutionRequest{
+			SubjectID: identity.SubjectID(principal.UserID), RoleKey: principal.RoleKey,
 		})
 		if err != nil || !resolved.Principal.Known || resolved.Principal.MustChangePassword || resolved.Principal.WorkspaceID != principal.WorkspaceID || resolved.Principal.UserID != principal.UserID {
 			writeCode(w, 403, "agent.web.module_access_denied")

@@ -89,6 +89,25 @@ type ConversationRunMetrics struct {
 	ConfirmationDecisions int `json:"confirmation_decisions"`
 }
 
+// ConversationExecutionLimits are deployment-owned admission limits. Agent
+// persistence applies them atomically for the exact runtime/workspace/user
+// scope; callers cannot select a different scope through request payloads.
+type ConversationExecutionLimits struct {
+	MaxQueuedPerUser       int `json:"max_queued_per_user"`
+	MaxQueuedPerWorkspace  int `json:"max_queued_per_workspace"`
+	MaxRunningPerUser      int `json:"max_running_per_user"`
+	MaxRunningPerWorkspace int `json:"max_running_per_workspace"`
+}
+
+// ConversationExecutionCapacity is a current aggregate. It contains counts
+// only and does not expose another user's runs or task contents.
+type ConversationExecutionCapacity struct {
+	UserQueued       int `json:"user_queued"`
+	WorkspaceQueued  int `json:"workspace_queued"`
+	UserRunning      int `json:"user_running"`
+	WorkspaceRunning int `json:"workspace_running"`
+}
+
 type ConversationRunAuditEvent struct {
 	Seq                   int64     `json:"seq"`
 	Type                  string    `json:"type"` // run, model, tool, authorization, confirmation
@@ -298,4 +317,10 @@ type ConversationStreamingModel interface {
 type ConversationStatusProvider interface {
 	ConversationReady(context.Context) error
 	ConversationStreaming() bool
+}
+
+// ConversationCapacityProvider is optional so older hosts can keep the base
+// conversation contract. Production Agent stores implement this projection.
+type ConversationCapacityProvider interface {
+	ConversationExecutionCapacity(context.Context, ConversationAuthority) (ConversationExecutionCapacity, error)
 }

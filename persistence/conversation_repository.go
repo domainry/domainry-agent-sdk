@@ -14,6 +14,14 @@ type ConversationDeletionRepository interface {
 	DeleteForRequest(context.Context, string, string, int64, agentsdk.ConversationAuthority) (json.RawMessage, error)
 }
 
+// ConversationCapacityRepository is an optional owner port configured before
+// workers start. Implementations serialize workspace admission and keep all
+// quota decisions inside the transaction that changes queue state.
+type ConversationCapacityRepository interface {
+	ConfigureConversationExecutionLimits(agentsdk.ConversationExecutionLimits) error
+	ConversationExecutionCapacity(context.Context, agentsdk.ConversationAuthority) (agentsdk.ConversationExecutionCapacity, error)
+}
+
 type ConversationClaim struct {
 	Authority agentsdk.ConversationAuthority
 	Run       agentsdk.ConversationRun
