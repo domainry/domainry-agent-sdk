@@ -18,6 +18,7 @@ type ConversationExecutionEntry struct {
 	RecordHash string                       `json:"record_hash"`
 	State      string                       `json:"state"`
 	Status     string                       `json:"status,omitempty"`
+	Completion string                       `json:"completion,omitempty"`
 	ResourceID string                       `json:"resource_id,omitempty"`
 	ErrorCode  string                       `json:"error_code,omitempty"`
 	Reference  *ConversationResultReference `json:"reference,omitempty"`

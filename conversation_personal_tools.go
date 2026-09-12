@@ -6,6 +6,7 @@ import (
 	"time"
 
 	actioncontract "github.com/domainry/domainry-foundation/action"
+	toolsdk "github.com/domainry/domainry-tools-sdk"
 )
 
 const ConversationToolActionPrefix = "agent.conversation_tools."
@@ -74,11 +75,14 @@ func PersonalConversationTools() []ConversationToolDefinition {
 func ConversationToolActions() []actioncontract.ActionDefinition {
 	out := []actioncontract.ActionDefinition{}
 	definitions := append(PersonalConversationTools(), KnowledgeConversationTools()...)
-	definitions = append(definitions, KnowledgeLibraryCatalogTool())
+	definitions = append(definitions, KnowledgeLibraryCatalogTool(), KnowledgeExtractionTool())
+	definitions = append(definitions, AttachmentConversationTools()...)
 	definitions = append(definitions, BusinessConversationTools()...)
 	definitions = append(definitions, BusinessRelationConversationTools()...)
 	definitions = append(definitions, BusinessActionConversationTools()...)
 	definitions = append(definitions, BusinessWorkflowConversationTools()...)
+	definitions = append(definitions, toolsdk.ReportQueryDefinitions()...)
+	definitions = append(definitions, toolsdk.AnalysisDefinitions()...)
 	for _, tool := range append(definitions, ArtifactConversationTools()...) {
 		effect := actioncontract.EffectRead
 		if tool.Effect == "write" {

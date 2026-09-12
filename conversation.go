@@ -2,6 +2,7 @@ package agentsdk
 
 import (
 	"context"
+	toolsdk "github.com/domainry/domainry-tools-sdk"
 	"time"
 )
 
@@ -10,13 +11,7 @@ import (
 const CapabilityConversationV1 = "conversation.v1"
 const CapabilityConversationStreamV1 = "conversation.stream.v1"
 
-type ConversationAuthority struct {
-	Known       bool   `json:"known"`
-	RuntimeID   string `json:"runtime_id"`
-	WorkspaceID string `json:"workspace_id"`
-	UserID      string `json:"user_id"`
-	RoleKey     string `json:"role_key,omitempty"`
-}
+type ConversationAuthority = toolsdk.Authority
 
 type Conversation struct {
 	ID            string    `json:"id"`

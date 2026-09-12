@@ -131,10 +131,35 @@ to pretend a historical read is current.
 Module hosts assembled in two stages can implement
 `modulehost.DeferredConversationHost`. When enabled, the module opens storage
 and definitions first; `Conversations()` returns nil until the startup-only
-`BindApplicationHost` receives `modulehost.ConversationApplicationHost` with a
-current authorizer and optional business source. Conversation workers and HTTP
-adapters are created only then. Finish binding before serving HTTP. Ordinary
-hosts without this optional marker keep their existing startup behavior.
+`modulehost.ConversationApplicationHostBinder.BindConversationHost` receives a
+`modulehost.ConversationApplicationHost` with a current authorizer and optional
+business source. This host needs no Interactive, Task, Proposal, Audit or Analysis
+ports and no ProcessID or TaskDefinition. Conversation workers and HTTP adapters
+are created only then. The existing full `BindApplicationHost` also supports
+deferred conversations for hosts that already implement the legacy ports.
+
+The current application authorizer must additionally implement
+`ConversationExecutionAuthorizer`, unless the module options supply an explicit
+execution authorizer. Binding without it fails even for a text-only model.
+This port receives stable owner identifiers and an application-selected stage,
+not credentials or cached permissions. It checks the current execution admission
+policy before enqueue/resume/respond, on each worker attempt, before model and
+tool calls, and before committing a reply. Existing conversation send/resume
+actions require a current authenticated principal; tool/resource permissions
+remain independent. Explicit resume/response persists the current trusted role
+selection without changing the owner or original operation scope. A false result
+or error stops execution, and the implementation must honor the bounded context.
+Legacy service-only deployments must supply their own current policy; this
+interface does not make their service API key a live user authorization.
+
+Finish binding before serving HTTP or reading services, descriptors or adapters.
+The conversation-only binder rejects missing authorizers, repeated calls, calls
+after Close and bindings that did not opt into deferred startup. It never
+replaces a live service. A later legacy application binding can add the old
+ports without replacing conversations. With deferred startup, automatic tool,
+authorization and availability defaults come from the bound conversation host;
+explicit conversation options still take precedence. Ordinary hosts without
+the optional marker keep their existing startup behavior.
 
 Run `go test ./...` before publishing an immutable SDK version.
 
@@ -184,7 +209,12 @@ frozen confirmation and stable idempotency metadata arrive separately from Agent
 
 The host must enforce live business and record permissions, exact contracts and
 its existing action rules. Agent currently requires confirmation of each concrete
-business write. Personal memory, todo or artifact write scopes do not authorize
+business write. An interaction may publish up to 20 concrete remaining operations
+from its frozen step. An authenticated `scope=listed_operations` response explicitly
+approves that list; an empty scope approves only the current call. Agent persists
+an exact per-call confirmation for each listed operation in the same transaction,
+with `AuthorizationID` linking the original grouped consent. New calls, changed
+arguments and other runs never inherit it. Personal memory, todo or artifact write scopes do not authorize
 business mutations. A confirmed request cannot satisfy an additional host approval
 requirement by itself.
 
@@ -198,3 +228,34 @@ revalidation is read-only and checks the entire receipt and current access.
 ## Browser gateway
 
 `browsergateway.NewHandler` composes the SDK Agent and Identity bindings into a same-origin browser boundary. The caller provides static files and may supply its existing HTTP router so conversation requests retain host admission, authorization and audit. It does not import the Agent implementation or open module databases.
+
+`browsergateway.Options.ModuleAdapters` mounts declared owner HTTP routes under the same current Identity and page-scope boundary. Every request resolves a live AccessBundle; owner adapters retain action/data authorization. `NavigationFiles` allows only exact static HTML landing routes for cross-site GET navigation, never anonymous module commands. Reserved service paths and undeclared permissions are rejected. The host owns module composition; this SDK does not import Integration or Connector implementations.
+
+The optional `businessrpc` package transports the existing complete business-host
+profile over bounded, authenticated HTTP. It does not implement records, actions,
+workflows, reports, confirmation storage or retries. `NewHandler` requires a host
+that re-resolves current Identity and tool access; each service credential is
+pinned to one runtime, workspace, Identity application and Identity issuer. `Open` verifies the
+expected source identity and `ContractSHA256()` before exposing a client; every
+request carries the immutable binding. Both deployments must use the same trusted
+Identity domain, with `Scope.IdentityIssuer` supplied from the actual Identity
+binding. Browser credentials and model-supplied authorities are not valid
+inputs to this server-to-server trust boundary.
+
+The profile includes catalog/query/get/relations, action authorization/invocation/
+reconciliation, workflow authorization/start/reconciliation/state, and current
+source revalidation/sealing. Unsupported operations remain denied by the host's
+current tool authorizer. Protocol DTO shapes and semantics are hashed separately
+from the Agent product HTTP API. Transport accepts only HTTPS or explicitly local
+HTTP, refuses credential-bearing URLs and redirects, bounds requests/responses to
+1 MiB and calls to 65 seconds, and disables automatic body replay. A write without
+a trustworthy response returns `uncertain`; explicit reconciliation keeps the
+original host idempotency and confirmation metadata. No report or arbitrary SQL
+endpoint is introduced.
+
+`ConversationConfirmationVerifier` aliases the neutral Tools SDK confirmation
+port. Agent offers it to trusted startup tool composition to check an exact
+persisted approval and the current worker lease. An adapter must not treat a
+caller-constructed confirmation receipt as authority. The port exposes neither
+the Agent repository nor an HTTP approval route; it does not grant permission
+to read an old result after current source access is revoked.

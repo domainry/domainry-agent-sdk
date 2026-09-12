@@ -25,6 +25,8 @@ import (
 const accessCookie = "domainry_agent_access"
 
 type Options struct {
+	// CookiePrefix isolates independently deployed products on the same hostname.
+	CookiePrefix                                          string
 	Identity                                              identitysdk.Binding
 	Agent                                                 agentsdk.Binding
 	RuntimeID, WorkspaceID, ApplicationKey, Origin, Model string
@@ -33,6 +35,14 @@ type Options struct {
 	// pass the browser boundary first, then retain the host's admission/audit
 	// middleware. Only the verified cookie's token is forwarded server-side.
 	ConversationHandler http.Handler
+	// Product routes use the same current-session, password and scope checks.
+	ApplicationRoutes map[string]http.Handler
+	// Module adapters keep their owner routes and action authorization. The
+	// browser host supplies only a live Identity principal and same-origin guard.
+	ModuleAdapters []modulehttp.Adapter
+	// NavigationFiles maps explicit cross-site GET landing paths to static HTML
+	// files in Files. These pages receive no identity and cannot execute commands.
+	NavigationFiles map[string]string
 }
 
 func Scope(runtimeID, workspaceID, userID string) string {
@@ -49,6 +59,11 @@ func NewHandler(options Options) (http.Handler, error) {
 	if options.RuntimeID == "" || options.Identity == nil || options.Agent == nil || options.Files == nil {
 		return nil, fmt.Errorf("web host modules, runtime identity and UI are required")
 	}
+	if options.CookiePrefix != "" {
+		if err := (&http.Cookie{Name: options.CookiePrefix + "_access"}).Valid(); err != nil {
+			return nil, fmt.Errorf("invalid product cookie prefix")
+		}
+	}
 	b := &boundary{options: options, secure: origin.Scheme == "https", external: options.Identity.Descriptor().Mode == identitysdk.DeploymentModeExternal}
 	mux := http.NewServeMux()
 	if b.external {
@@ -58,7 +73,7 @@ func NewHandler(options Options) (http.Handler, error) {
 	} else {
 		gateway, err := browsergateway.New(options.Identity, browsergateway.Config{
 			ApplicationKey: identitysdk.ApplicationKey(options.ApplicationKey), DefaultWorkspaceID: identitysdk.WorkspaceID(options.WorkspaceID),
-			Cookie: browsergateway.CookieConfig{Name: "domainry_agent_refresh", Path: "/auth", Secure: origin.Scheme == "https", SameSite: http.SameSiteStrictMode},
+			Cookie: browsergateway.CookieConfig{Name: b.refreshCookie(), Path: "/auth", Secure: origin.Scheme == "https", SameSite: http.SameSiteStrictMode},
 		})
 		if err != nil {
 			return nil, err
@@ -78,7 +93,7 @@ func NewHandler(options Options) (http.Handler, error) {
 		if b.external {
 			workspace, authentication = "", "external"
 		}
-		writeJSON(w, 200, map[string]any{"mode": "identity", "authentication": authentication, "workspace_id": workspace, "runtime_id": options.RuntimeID})
+		writeJSON(w, 200, map[string]any{"mode": "identity", "authentication": authentication, "workspace_id": workspace, "runtime_id": options.RuntimeID, "modules": b.moduleOwners()})
 	})
 	mux.Handle("GET /app/session", b.authenticated(false, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		identity, _ := identitysdk.RequestIdentityFromContext(r.Context())
@@ -89,7 +104,7 @@ func NewHandler(options Options) (http.Handler, error) {
 				ready = status.ConversationReady(r.Context()) == nil
 			}
 		}
-		writeJSON(w, 200, map[string]any{"mode": "identity", "runtime_id": options.RuntimeID, "workspace_id": p.WorkspaceID, "user_id": p.UserID, "name": p.User.Name, "scope": Scope(options.RuntimeID, p.WorkspaceID, p.UserID), "must_change_password": p.MustChangePassword, "ready": ready, "model": options.Model})
+		writeJSON(w, 200, map[string]any{"mode": "identity", "runtime_id": options.RuntimeID, "workspace_id": p.WorkspaceID, "user_id": p.UserID, "name": p.User.Name, "scope": Scope(options.RuntimeID, p.WorkspaceID, p.UserID), "must_change_password": p.MustChangePassword, "ready": ready, "model": options.Model, "modules": b.moduleOwners()})
 	})))
 	provider, ok := options.Agent.(modulehttp.Provider)
 	if !ok {
@@ -115,6 +130,21 @@ func NewHandler(options Options) (http.Handler, error) {
 	if mounted == 0 {
 		return nil, fmt.Errorf("Agent conversation routes are required")
 	}
+	for pattern, handler := range options.ApplicationRoutes {
+		parts := strings.SplitN(pattern, " ", 2)
+		path := parts[len(parts)-1]
+		if !strings.HasPrefix(path, "/app/product/") || handler == nil {
+			return nil, fmt.Errorf("product routes must live under /app/product/")
+		}
+		mux.Handle(pattern, b.authenticated(true, handler))
+	}
+	if err := b.mountModules(mux); err != nil {
+		return nil, err
+	}
+	navigation, err := b.mountNavigationFiles(mux)
+	if err != nil {
+		return nil, err
+	}
 	mux.Handle("/", http.FileServer(http.FS(options.Files)))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
@@ -122,7 +152,8 @@ func NewHandler(options Options) (http.Handler, error) {
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
 		unsafe := r.Method != http.MethodGet && r.Method != http.MethodHead
-		if r.Host != origin.Host || r.Header.Get("Sec-Fetch-Site") == "cross-site" || (r.Header.Get("Origin") != "" && r.Header.Get("Origin") != options.Origin) || (unsafe && r.Header.Get("Origin") != options.Origin) {
+		landing := r.Method == http.MethodGet && navigation[r.URL.Path]
+		if r.Host != origin.Host || (!landing && r.Header.Get("Sec-Fetch-Site") == "cross-site") || (!landing && r.Header.Get("Origin") != "" && r.Header.Get("Origin") != options.Origin) || (unsafe && r.Header.Get("Origin") != options.Origin) {
 			writeCode(w, 403, "agent.web.origin_required")
 			return
 		}
@@ -159,7 +190,7 @@ func (b *boundary) identity(r *http.Request) (identitysdk.RequestIdentity, error
 		return b.externalIdentity(r)
 	}
 	var result identitysdk.RequestIdentity
-	cookie, err := r.Cookie(accessCookie)
+	cookie, err := r.Cookie(b.accessCookie())
 	if err != nil || cookie.Value == "" {
 		return result, errors.New("missing access cookie")
 	}
@@ -249,7 +280,7 @@ func (b *boundary) cookieTransport(next http.HandlerFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r = r.Clone(r.Context())
 		r.Header.Del("Authorization")
-		if cookie, err := r.Cookie(accessCookie); err == nil {
+		if cookie, err := r.Cookie(b.accessCookie()); err == nil {
 			r.Header.Set("Authorization", "Bearer "+cookie.Value)
 		}
 		out := &bufferedResponse{header: make(http.Header), status: 200}
@@ -267,13 +298,13 @@ func (b *boundary) cookieTransport(next http.HandlerFunc) http.Handler {
 				writeCode(w, 502, "agent.web.session_invalid")
 				return
 			}
-			http.SetCookie(w, &http.Cookie{Name: accessCookie, Value: token, Path: "/", HttpOnly: true, Secure: b.secure, SameSite: http.SameSiteStrictMode, Expires: deadline})
+			http.SetCookie(w, &http.Cookie{Name: b.accessCookie(), Value: token, Path: "/", HttpOnly: true, Secure: b.secure, SameSite: http.SameSiteStrictMode, Expires: deadline})
 			delete(body, "access_token")
 			out.body.Reset()
 			_ = json.NewEncoder(&out.body).Encode(body)
 		}
 		if r.URL.Path == "/auth/logout" {
-			http.SetCookie(w, &http.Cookie{Name: accessCookie, Path: "/", HttpOnly: true, Secure: b.secure, SameSite: http.SameSiteStrictMode, MaxAge: -1})
+			http.SetCookie(w, &http.Cookie{Name: b.accessCookie(), Path: "/", HttpOnly: true, Secure: b.secure, SameSite: http.SameSiteStrictMode, MaxAge: -1})
 		}
 		for key, values := range out.header {
 			for _, value := range values {
@@ -301,4 +332,17 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 }
 func writeCode(w http.ResponseWriter, status int, code string) {
 	writeJSON(w, status, map[string]string{"code": code})
+}
+
+func (b *boundary) accessCookie() string {
+	if b.options.CookiePrefix != "" {
+		return b.options.CookiePrefix + "_access"
+	}
+	return accessCookie
+}
+func (b *boundary) refreshCookie() string {
+	if b.options.CookiePrefix != "" {
+		return b.options.CookiePrefix + "_refresh"
+	}
+	return "domainry_agent_refresh"
 }

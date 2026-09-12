@@ -58,10 +58,12 @@ type KnowledgeDocumentStorage interface {
 // document passage. It must exclude unrelated/global response data. The Agent
 // applies its local document allowlist before constructing model evidence.
 type KnowledgeDocumentPassage struct {
-	DocumentID string `json:"doc_id"`
-	Title      string `json:"title,omitempty"`
-	URL        string `json:"url,omitempty"`
-	Content    string `json:"content,omitempty"`
+	DocumentID string               `json:"doc_id"`
+	Title      string               `json:"title,omitempty"`
+	URL        string               `json:"url,omitempty"`
+	Content    string               `json:"content,omitempty"`
+	Location   *DocumentLocation    `json:"location,omitempty"`
+	Cells      []KnowledgePassageCell `json:"cells,omitempty"`
 }
 type ManagedKnowledgeDocumentSource interface {
 	KnowledgeDocumentSource

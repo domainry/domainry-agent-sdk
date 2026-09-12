@@ -13,12 +13,15 @@ type ConversationInteractionRecord struct {
 }
 
 type ConversationWait struct {
-	Step     int
-	CallID   string
-	Kind     string
-	Question string
-	Choices  []string
-	TTL      time.Duration
+	// Trusted application selection only. Persistence derives all operation
+	// details from the frozen step and checks that these are remaining writes.
+	OperationCallIDs []string
+	Step             int
+	CallID           string
+	Kind             string
+	Question         string
+	Choices          []string
+	TTL              time.Duration
 }
 
 type ConversationInteractionRepository interface {

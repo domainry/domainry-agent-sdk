@@ -1,6 +1,6 @@
 package agentsdk
 
-import "context"
+import toolsdk "github.com/domainry/domainry-tools-sdk"
 
 // ConversationToolAvailability is an optional, live host policy for connection
 // state and tool switches. The service asks only about registered tools that
@@ -14,6 +14,4 @@ import "context"
 // This check does not replace authorization of the concrete action/resources.
 // Without this optional policy, the existing host owns availability through
 // ConversationTools and AuthorizeConversationTool, preserving legacy hosts.
-type ConversationToolAvailability interface {
-	ConversationToolAvailable(context.Context, ConversationAuthority, string) (bool, error)
-}
+type ConversationToolAvailability = toolsdk.Availability

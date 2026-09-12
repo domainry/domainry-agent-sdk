@@ -41,6 +41,8 @@ func ConversationHTTPDefinitions() []ConversationHTTPDefinition {
 		{"libraries_create", "POST /agent/knowledge-libraries", KnowledgeLibraryCreate{}, KnowledgeLibrary{}, nil},
 		{"libraries_list", "GET /agent/knowledge-libraries", nil, KnowledgeLibraryPage{}, []string{"after", "limit"}},
 		{"libraries_get", "GET /agent/knowledge-libraries/{libraryID}", nil, KnowledgeLibrary{}, nil},
+		{"libraries_sources", "GET /agent/knowledge-libraries/{libraryID}/sources", nil, KnowledgeLibrarySources{}, []string{"after", "limit"}},
+		{"libraries_bind_source", "PUT /agent/knowledge-libraries/{libraryID}/source", KnowledgeLibrarySourceWrite{}, KnowledgeLibrary{}, nil},
 		{"libraries_update", "PATCH /agent/knowledge-libraries/{libraryID}", KnowledgeLibraryUpdate{}, KnowledgeLibrary{}, nil},
 		{"libraries_members", "GET /agent/knowledge-libraries/{libraryID}/members", nil, KnowledgeLibraryMembers{}, []string{"after", "limit"}},
 		{"libraries_set_member", "PUT /agent/knowledge-libraries/{libraryID}/members/{userID}", KnowledgeLibraryMemberWrite{}, KnowledgeLibrary{}, nil},
@@ -56,6 +58,8 @@ func ConversationHTTPDefinitions() []ConversationHTTPDefinition {
 		{"attachments_upload", "POST /agent/conversations/{conversationID}/attachments", ConversationAttachmentUpload{}, ConversationAttachment{}, []string{"client_id", "filename"}},
 		{"attachments_get", "GET /agent/conversations/{conversationID}/attachments/{attachmentID}", nil, ConversationAttachment{}, nil},
 		{"attachments_download", "GET /agent/conversations/{conversationID}/attachments/{attachmentID}/content", nil, ConversationAttachmentDownload{}, nil},
+		{"attachments_index", "POST /agent/conversations/{conversationID}/attachments/{attachmentID}/index", nil, ConversationAttachment{}, []string{"expected_revision"}},
+		{"attachments_check_index", "POST /agent/conversations/{conversationID}/attachments/{attachmentID}/index/check", nil, ConversationAttachment{}, []string{"expected_revision"}},
 		{"attachments_delete", "DELETE /agent/conversations/{conversationID}/attachments/{attachmentID}", nil, ConversationAttachment{}, []string{"expected_revision"}},
 		{"todos_list", "GET /agent/todos", nil, ConversationTodoPage{}, []string{"query", "status", "source_conversation_id", "batch_id", "cursor", "limit"}},
 		{"todos_get", "GET /agent/todos/{todoID}", nil, ConversationTodo{}, nil},
@@ -185,6 +189,7 @@ type ConversationRPCRequest struct {
 	LibraryUserID      string                            `json:"library_user_id,omitempty"`
 	LibraryAfter       string                            `json:"library_after,omitempty"`
 	LibraryCreate      KnowledgeLibraryCreate            `json:"library_create,omitempty"`
+	LibrarySourceWrite KnowledgeLibrarySourceWrite       `json:"library_source_write,omitempty"`
 	LibraryUpdate      KnowledgeLibraryUpdate            `json:"library_update,omitempty"`
 	LibraryMemberWrite KnowledgeLibraryMemberWrite       `json:"library_member_write,omitempty"`
 	AttachmentID       string                            `json:"attachment_id,omitempty"`

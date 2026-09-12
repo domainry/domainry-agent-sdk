@@ -3,6 +3,7 @@ package agentsdk
 import (
 	"context"
 	"encoding/json"
+	toolsdk "github.com/domainry/domainry-tools-sdk"
 )
 
 // Conversation execution is an optional capability. The existing text-only
@@ -14,6 +15,8 @@ type ConversationExecutionStatusProvider interface{ ConversationExecutionEnabled
 // Bounded public projections. These never contain model input snapshots,
 // policy bundles, credentials, or opaque provider continuation blocks.
 type ConversationToolView struct {
+	Effect          string                       `json:"effect,omitempty"`     // trusted registration: read or write
+	Completion      string                       `json:"completion,omitempty"` // accepted: invocation acknowledged; business work remains pending
 	Citations       []ConversationCitation       `json:"citations,omitempty"`
 	ID              string                       `json:"id"`
 	Name            string                       `json:"name"`
@@ -35,24 +38,9 @@ type ConversationStepView struct {
 
 // Tool definitions come from trusted host registration. A model chooses a key
 // and arguments; it cannot supply the authorization, effect or retry policy.
-type ConversationToolDefinition struct {
-	Key            string          `json:"key"`
-	Version        string          `json:"version"`
-	Description    string          `json:"description"`
-	InputSchema    json.RawMessage `json:"input_schema"`
-	OutputSchema   json.RawMessage `json:"output_schema"`
-	ActionKey      string          `json:"action_key"`
-	Effect         string          `json:"effect"`      // read or write
-	Idempotency    string          `json:"idempotency"` // natural, key or reconcile
-	TimeoutMillis  int             `json:"timeout_ms"`
-	MaxOutputBytes int             `json:"max_output_bytes"`
-}
+type ConversationToolDefinition = toolsdk.Definition
 
-type ConversationToolCall struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	Arguments string `json:"arguments"` // Complete JSON text; the executor validates the schema.
-}
+type ConversationToolCall = toolsdk.Call
 
 // ProviderState carries protocol continuation blocks (e.g. signed thinking or
 // encrypted reasoning). It is server-side execution state, never a browser
@@ -116,36 +104,11 @@ type ConversationAgentModel interface {
 // Execution authority is resolved by the host on each call, including resume.
 // Granted means authorized now, and ConfirmationRequired is a separate policy
 // decision; neither can be inferred from a tool's visibility in the catalog.
-type ConversationToolAuthorization struct {
-	UserTimezone         string         `json:"user_timezone,omitempty"`
-	Granted              bool           `json:"granted"`
-	ConfirmationRequired bool           `json:"confirmation_required"`
-	Revision             string         `json:"revision"`
-	Evidence             map[string]any `json:"evidence,omitempty"`
-}
+type ConversationToolAuthorization = toolsdk.Authorization
 
-type ConversationToolRequest struct {
-	Authority      ConversationAuthority
-	ConversationID string
-	RunID          string
-	Step           int
-	Call           ConversationToolCall
-	Definition     ConversationToolDefinition
-	IdempotencyKey string
-	ConfirmationID string
-	Confirmation   *ConversationConfirmation
-	// Server-only worker guard. Local transactional effects validate this
-	// against persisted state; it is never accepted from model arguments.
-	LeaseOwner string
-	Fence      int64
-}
+type ConversationToolRequest = toolsdk.Request
 
-type ConversationToolResult struct {
-	Status     string          `json:"status"` // completed, failed, pending or uncertain
-	Content    json.RawMessage `json:"content,omitempty"`
-	ErrorCode  string          `json:"error_code,omitempty"`
-	ResourceID string          `json:"resource_id,omitempty"`
-}
+type ConversationToolResult = toolsdk.Result
 
 // Narrow execution port for Conversation. It does not require a Workflow or
 // an existing TaskDefinition; concrete business effects remain host-owned.

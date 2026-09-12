@@ -11,6 +11,9 @@ import (
 type KnowledgeLibrary struct {
 	KnowledgeConfigured bool      `json:"knowledge_configured,omitempty"` // Host binding exists; not a remote health/indexing assertion.
 	DocumentsConfigured bool      `json:"documents_configured,omitempty"` // Host enables document management; not an Identity permission grant.
+	DocumentMaxBytes    int64     `json:"document_max_bytes,omitempty"`   // Current upload limit; existing downloads retain their recorded size.
+	SourcesManageable   bool      `json:"sources_manageable,omitempty"`   // Live resource and Identity permission decision.
+	DatasourceKey       string    `json:"datasource_key,omitempty"`       // Selected host catalog key, never a credential or ACL.
 	ID                  string    `json:"id"`
 	Kind                string    `json:"kind"` // personal, shared
 	Name                string    `json:"name"`

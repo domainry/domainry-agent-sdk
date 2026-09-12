@@ -47,6 +47,7 @@ type SkillSchema struct {
 }
 
 type AgentSchema struct {
+	Instructions    string               `json:"instructions,omitempty"`
 	Key             string               `json:"key"`
 	Version         string               `json:"version,omitempty"`
 	Name            string               `json:"name"`

@@ -11,31 +11,34 @@ import (
 // provider-specific document schema.
 // ScopeSHA256 binds a receipt to its source configuration and authenticated owner.
 type ConversationKnowledgeResult struct {
-	LibraryID   string                 `json:"library_id,omitempty"`
-	Provider    string                 `json:"provider"`
-	KBID        string                 `json:"kb_id"`
-	Operation   string                 `json:"operation"`
-	Query       string                 `json:"query,omitempty"`
-	DocumentID  string                 `json:"doc_id,omitempty"`
-	ScopeSHA256 string                 `json:"scope_sha256"`
-	Citations   []ConversationCitation `json:"citations,omitempty"`
-	Data        json.RawMessage        `json:"data"`
+	ConversationID string                 `json:"conversation_id,omitempty"`
+	LibraryID      string                 `json:"library_id,omitempty"`
+	Provider       string                 `json:"provider"`
+	KBID           string                 `json:"kb_id"`
+	Operation      string                 `json:"operation"`
+	Query          string                 `json:"query,omitempty"`
+	DocumentID     string                 `json:"doc_id,omitempty"`
+	ScopeSHA256    string                 `json:"scope_sha256"`
+	Citations      []ConversationCitation `json:"citations,omitempty"`
+	Data           json.RawMessage        `json:"data"`
 }
 
 // Citations are normalized by the trusted knowledge host from the actual
 // response. IDs bind source configuration, owner, response and source position;
 // they are not document ACL grants and must be revalidated with the receipt.
 type ConversationCitation struct {
-	LibraryID        string `json:"library_id,omitempty"`
-	ID               string `json:"id"`
-	Provider         string `json:"provider"`
-	KBID             string `json:"kb_id"`
-	Operation        string `json:"operation"`
-	DocumentID       string `json:"doc_id"`
-	Title            string `json:"title,omitempty"`
-	URL              string `json:"url,omitempty"`
-	Excerpt          string `json:"excerpt,omitempty"`
-	ExcerptTruncated bool   `json:"excerpt_truncated,omitempty"`
+	ConversationID   string            `json:"conversation_id,omitempty"`
+	LibraryID        string            `json:"library_id,omitempty"`
+	ID               string            `json:"id"`
+	Provider         string            `json:"provider"`
+	KBID             string            `json:"kb_id"`
+	Operation        string            `json:"operation"`
+	DocumentID       string            `json:"doc_id"`
+	Title            string            `json:"title,omitempty"`
+	URL              string            `json:"url,omitempty"`
+	Excerpt          string            `json:"excerpt,omitempty"`
+	ExcerptTruncated bool              `json:"excerpt_truncated,omitempty"`
+	Location         *DocumentLocation `json:"location,omitempty"`
 }
 
 type ConversationKnowledgeSource interface {
