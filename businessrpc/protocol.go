@@ -101,7 +101,7 @@ var methods = []method{
 func ContractSHA256() string { return contractSHA }
 
 var contractSHA = func() string {
-	parts := []any{ProtocolVersion, CapabilitiesPath, CallPath, MaxRequestBytes, MaxResponseBytes, "trusted-scoped-delegation;current-execution-and-tool-policy;report-owner-authorization;analysis-owner-full-dataset-and-version-proof;analysis-safe-errors-v1;recursive-shapes-v1;preserve-json-numbers;no-retry;write-unknown-on-transport-failure", shape(reflect.TypeFor[request]()), shape(reflect.TypeFor[response]())}
+	parts := []any{ProtocolVersion, CapabilitiesPath, CallPath, MaxRequestBytes, MaxResponseBytes, "trusted-scoped-delegation;current-execution-and-tool-policy;report-owner-authorization;analysis-owner-full-dataset-and-version-proof;analysis-safe-errors-v1;analysis-result-roundtrip-limit-v1;recursive-shapes-v1;preserve-json-numbers;no-retry;write-unknown-on-transport-failure", shape(reflect.TypeFor[request]()), shape(reflect.TypeFor[response]())}
 	for _, m := range methods {
 		parts = append(parts, []any{m.key, shape(m.input), shape(m.output)})
 	}

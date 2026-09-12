@@ -10,6 +10,7 @@ import (
 	"time"
 
 	sdk "github.com/domainry/domainry-agent-sdk"
+	toolsdk "github.com/domainry/domainry-tools-sdk"
 )
 
 type ServerOptions struct {
@@ -135,6 +136,7 @@ func definition(key string) (sdk.ConversationToolDefinition, bool) {
 	defs := append(sdk.BusinessConversationTools(), sdk.BusinessRelationConversationTools()...)
 	defs = append(defs, sdk.BusinessActionConversationTools()...)
 	defs = append(defs, sdk.BusinessWorkflowConversationTools()...)
+	defs = append(defs, toolsdk.AnalysisDefinitions()...)
 	for _, d := range defs {
 		if d.Key == key {
 			return d, true

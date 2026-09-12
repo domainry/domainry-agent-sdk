@@ -30,16 +30,17 @@ type Conversation struct {
 }
 
 type ConversationMessage struct {
-	Citations      []ConversationCitation `json:"citations,omitempty"`    // current, authorized read projection
-	AccessError    string                 `json:"access_error,omitempty"` // read projection; original content is retained internally
-	InteractionID  string                 `json:"interaction_id,omitempty"`
-	ID             string                 `json:"id"`
-	ConversationID string                 `json:"conversation_id"`
-	RunID          string                 `json:"run_id"`
-	Seq            int64                  `json:"seq"`
-	Role           string                 `json:"role"`
-	Content        string                 `json:"content"`
-	CreatedAt      time.Time              `json:"created_at"`
+	Citations        []ConversationCitation `json:"citations,omitempty"`    // current, authorized read projection
+	AccessError      string                 `json:"access_error,omitempty"` // read projection; original content is retained internally
+	InteractionID    string                 `json:"interaction_id,omitempty"`
+	ID               string                 `json:"id"`
+	ConversationID   string                 `json:"conversation_id"`
+	RunID            string                 `json:"run_id"`
+	Seq              int64                  `json:"seq"`
+	Role             string                 `json:"role"`
+	Content          string                 `json:"content"`
+	BackgroundTaskID string                 `json:"background_task_id,omitempty"`
+	CreatedAt        time.Time              `json:"created_at"`
 }
 
 type ConversationRun struct {
@@ -53,18 +54,19 @@ type ConversationRun struct {
 	AssistantMessageID string `json:"assistant_message_id,omitempty"`
 	Attempt            int    `json:"attempt"`
 	// Draft belongs to Attempt and is never included in conversation history.
-	DraftText    string                   `json:"draft_text,omitempty"`
-	DraftBytes   int                      `json:"draft_bytes"`
-	LastEventSeq int64                    `json:"last_event_seq"`
-	Steps        []ConversationStepView   `json:"steps,omitempty"`
-	Interaction  *ConversationInteraction `json:"interaction,omitempty"`
-	LastInputSeq int64                    `json:"last_input_seq,omitempty"`
-	WriteScope   *ConversationWriteScope  `json:"write_scope,omitempty"`
-	Model        string                   `json:"model,omitempty"`
-	Usage        map[string]any           `json:"usage,omitempty"`
-	ErrorCode    string                   `json:"error_code,omitempty"`
-	CreatedAt    time.Time                `json:"created_at"`
-	UpdatedAt    time.Time                `json:"updated_at"`
+	DraftText      string                     `json:"draft_text,omitempty"`
+	DraftBytes     int                        `json:"draft_bytes"`
+	LastEventSeq   int64                      `json:"last_event_seq"`
+	Steps          []ConversationStepView     `json:"steps,omitempty"`
+	Interaction    *ConversationInteraction   `json:"interaction,omitempty"`
+	LastInputSeq   int64                      `json:"last_input_seq,omitempty"`
+	WriteScope     *ConversationWriteScope    `json:"write_scope,omitempty"`
+	BackgroundTask *ConversationTaskExecution `json:"background_task,omitempty"`
+	Model          string                     `json:"model,omitempty"`
+	Usage          map[string]any             `json:"usage,omitempty"`
+	ErrorCode      string                     `json:"error_code,omitempty"`
+	CreatedAt      time.Time                  `json:"created_at"`
+	UpdatedAt      time.Time                  `json:"updated_at"`
 }
 
 func (r ConversationRun) Terminal() bool {
@@ -143,6 +145,7 @@ type ConversationWriteScope struct {
 	PersonalMemory    bool `json:"personal_memory"`
 	PersonalTodos     bool `json:"personal_todos,omitempty"`
 	PersonalArtifacts bool `json:"personal_artifacts,omitempty"`
+	BackgroundTasks   bool `json:"background_tasks,omitempty"`
 }
 
 // Grants are resource-specific. A memory grant must never authorize a todo or
@@ -158,6 +161,8 @@ func (s *ConversationWriteScope) Allows(tool string) bool {
 		return s.PersonalTodos
 	case "artifact_create", "artifact_edit", "artifact_export":
 		return s.PersonalArtifacts
+	case "task_start":
+		return s.BackgroundTasks
 	default:
 		return false
 	}

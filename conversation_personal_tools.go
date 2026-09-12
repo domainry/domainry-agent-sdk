@@ -68,7 +68,8 @@ func PersonalConversationTools() []ConversationToolDefinition {
 		}
 		out = append(out, ConversationToolDefinition{Key: d.key, Version: "1", Description: d.description, InputSchema: json.RawMessage(d.input), OutputSchema: json.RawMessage(`{"type":"object"}`), ActionKey: ConversationToolActionPrefix + d.key, Effect: effect, Idempotency: idempotency, TimeoutMillis: 10000, MaxOutputBytes: maxOutput})
 	}
-	out = append(out, ConversationToolResultReadDefinition(), ConversationExecutionReadDefinition())
+	out = append(out, ConversationToolResultReadDefinition(), ConversationExecutionReadDefinition(), BackgroundTaskConversationTool())
+	out = append(out, BackgroundTaskQueryConversationTools()...)
 	return append(out, personalTodoTools()...)
 }
 

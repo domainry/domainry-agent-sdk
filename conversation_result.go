@@ -1,6 +1,15 @@
 package agentsdk
 
-import "encoding/json"
+import (
+	"context"
+	"encoding/json"
+)
+
+// ConversationResultReader exposes bounded, currently authorized result
+// slices to user-facing clients. References never grant source access.
+type ConversationResultReader interface {
+	ReadResult(context.Context, string, string, ConversationResultRead, ConversationAuthority) (ConversationResultSlice, error)
+}
 
 // A reference identifies one immutable, owner-scoped tool result. It never
 // grants access: readers must reauthorize the original tool and its resources.

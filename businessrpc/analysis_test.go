@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -17,7 +18,8 @@ import (
 
 type analysisBackendFixture struct {
 	*backendFixture
-	denied atomic.Bool
+	denied  atomic.Bool
+	padding int
 }
 
 func (b *analysisBackendFixture) AnalysisCatalog(_ context.Context, in model.AnalysisCatalogRequest, _ agent.ConversationAuthority) (model.AnalysisCatalog, error) {
@@ -36,7 +38,12 @@ func (b *analysisBackendFixture) RunAnalysis(_ context.Context, in model.Analysi
 	}
 	b.hit("analysis_run")
 	value := "9007199254740993.20"
-	return model.AnalysisResult{Spec: in, Rows: []model.AnalysisRow{{Values: map[string]*string{"total": &value, "missing": nil}}}, Source: model.AnalysisSource{DatasetKey: in.DatasetKey, Complete: true, Proof: "owner-proof"}}, nil
+	out := model.AnalysisResult{Spec: in, Rows: []model.AnalysisRow{{Values: map[string]*string{"total": &value, "missing": nil}}}, Source: model.AnalysisSource{DatasetKey: in.DatasetKey, Complete: true, Proof: "owner-proof"}}
+	if b.padding > 0 {
+		padding := strings.Repeat("x", b.padding)
+		out.Rows[0].Values["padding"] = &padding
+	}
+	return out, nil
 }
 func (b *analysisBackendFixture) AuthorizeAnalysisResult(_ context.Context, in model.AnalysisResultAuthorization, _ agent.ConversationAuthority) error {
 	if b.denied.Load() || in.Result.Source.Proof != "owner-proof" || len(in.Request.Filters) != 1 || in.Request.Filters[0].Any[0].Values[0] != json.Number("9007199254740993") || *in.Result.Rows[0].Values["total"] != "9007199254740993.20" {
@@ -152,5 +159,46 @@ func TestRecursiveContractShapeIncludesNestedChangesAndKeepsAcyclicEncoding(t *t
 	pair, _ := json.Marshal(shape(reflect.TypeFor[siblings]()))
 	if strings.Count(string(pair), `"value"`) != 2 || strings.Contains(string(pair), "recursive-ref") {
 		t.Fatal("sibling fields disappeared", string(pair))
+	}
+}
+
+func TestAnalysisRPCRejectsResultsThatCannotBeReauthorizedOverHTTP(t *testing.T) {
+	for _, padding := range []int{MaxResponseBytes - 4096, MaxResponseBytes - 768, MaxResponseBytes + 1} {
+		t.Run(fmt.Sprint(padding), func(t *testing.T) {
+			b := &analysisBackendFixture{backendFixture: newBackend(), padding: padding}
+			h, err := NewHandler(ServerOptions{Scope: testScope, Token: testToken, Backend: b})
+			if err != nil {
+				t.Fatal(err)
+			}
+			s := httptest.NewServer(h)
+			defer s.Close()
+			c, err := Open(t.Context(), ClientOptions{BaseURL: s.URL, Token: testToken, Scope: testScope, ExpectedSourceIdentity: testSource, ExpectedContractSHA256: ContractSHA256()})
+			if err != nil {
+				t.Fatal(err)
+			}
+			r := model.AnalysisRequest{DatasetKey: "sale", Filters: []model.AnalysisFilter{{Any: []model.AnalysisFilter{{Field: "amount", Operator: "ge", Values: []any{json.Number("9007199254740993")}}}}}}
+			// Inspect the unbounded owner fixture, so the middle case proves that
+			// fitting a response alone is insufficient for persisted results.
+			owner, _ := b.RunAnalysis(t.Context(), r, testAuthority)
+			raw, _ := json.Marshal(owner)
+			responseBytes, _ := json.Marshal(response{Data: raw})
+			if padding == MaxResponseBytes-768 && len(responseBytes) > MaxResponseBytes {
+				t.Fatal("fixture no longer fits response", len(responseBytes))
+			}
+			out, err := c.RunAnalysis(t.Context(), r, testAuthority)
+			if padding == MaxResponseBytes-4096 {
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := c.AuthorizeAnalysisResult(t.Context(), model.AnalysisResultAuthorization{Request: r, Result: out}, testAuthority); err != nil {
+					t.Fatal("accepted result cannot round trip", err)
+				}
+				return
+			}
+			var coded *agent.Error
+			if !errors.As(err, &coded) || coded.Code != "backend.report.analysis.result_limit_exceeded" || len(out.Rows) != 0 {
+				t.Fatal("oversize result lost precise failure or returned partial rows", err)
+			}
+		})
 	}
 }

@@ -409,8 +409,10 @@ func TestRedirectAndBounds(t *testing.T) {
 }
 
 func TestContractAndConfigurationFailBeforeIO(t *testing.T) {
-	// N01 adds the three Report-owned discovery/query/evidence DTO contracts.
-	const expected = "0e804a1dd71ff7ac10663bea843956d50927500fc41c3c39d808da09958ec2a5"
+	// N02 adds three owner analysis ports, recursive DTO shapes, bounded safe
+	// analysis errors and exact result/reauthorization envelope bounds.
+	// Prior deployment pins must be updated.
+	const expected = "c19a21fafc9af80d76c6da2c0bf162c736d1db73c960815894e505f2b5f1a6c7"
 	if ContractSHA256() != expected {
 		t.Fatalf("public contract changed without compatibility review: %s", ContractSHA256())
 	}

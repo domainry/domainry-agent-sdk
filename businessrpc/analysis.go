@@ -2,6 +2,7 @@ package businessrpc
 
 import (
 	"context"
+	"encoding/json"
 
 	sdk "github.com/domainry/domainry-agent-sdk"
 	model "github.com/domainry/domainry-report-sdk/model"
@@ -36,7 +37,33 @@ func dispatchAnalysis(ctx context.Context, backend Backend, in request) (any, er
 		if decode(in.Payload, &v) != nil {
 			return nil, failure("bad_request")
 		}
-		return reader.RunAnalysis(ctx, v, in.Authority)
+		out, err := reader.RunAnalysis(ctx, v, in.Authority)
+		if err != nil {
+			return nil, err
+		}
+		// A successful read must fit both this response and the later saved-result
+		// authorization request. Bound the exact transport envelopes, never trim
+		// rows or weaken the shared transport limits.
+		result, err := json.Marshal(out)
+		if err != nil {
+			return nil, failure("unavailable")
+		}
+		encoded, err := json.Marshal(response{Data: result})
+		if err != nil {
+			return nil, failure("unavailable")
+		}
+		payload, err := json.Marshal(model.AnalysisResultAuthorization{Request: v, Result: out})
+		if err != nil {
+			return nil, failure("unavailable")
+		}
+		authorization, err := json.Marshal(request{Descriptor: in.Descriptor, Operation: "analysis_authorize_result", Authority: in.Authority, Payload: payload})
+		if err != nil {
+			return nil, failure("unavailable")
+		}
+		if len(encoded) > MaxResponseBytes || len(authorization) > MaxRequestBytes {
+			return nil, &sdk.Error{Class: "bad_request", Code: "backend.report.analysis.result_limit_exceeded"}
+		}
+		return out, nil
 	case "analysis_authorize_result":
 		var v model.AnalysisResultAuthorization
 		if decode(in.Payload, &v) != nil {

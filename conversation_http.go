@@ -30,6 +30,7 @@ func ConversationHTTPDefinitions() []ConversationHTTPDefinition {
 		{"send", "POST /agent/conversations/{conversationID}/messages", ConversationSend{}, ConversationRun{}, nil},
 		{"messages", "GET /agent/conversations/{conversationID}/messages", nil, ConversationMessagePage{}, []string{"before_seq", "after_seq", "limit"}},
 		{"run", "GET /agent/conversations/{conversationID}/runs/{runID}", nil, ConversationRun{}, nil},
+		{"result_read", "POST /agent/conversations/{conversationID}/runs/{runID}/result", ConversationResultRead{}, ConversationResultSlice{}, nil},
 		{"events", "GET /agent/conversations/{conversationID}/runs/{runID}/events", nil, ConversationEventPage{}, []string{"after_seq", "limit"}},
 		{"stream", "GET /agent/conversations/{conversationID}/runs/{runID}/events/stream", nil, ConversationEvent{}, []string{"after_seq"}},
 		{"cancel", "POST /agent/conversations/{conversationID}/runs/{runID}/cancel", nil, ConversationRun{}, nil},
@@ -66,6 +67,8 @@ func ConversationHTTPDefinitions() []ConversationHTTPDefinition {
 		{"todos_create", "POST /agent/todos", ConversationTodoCreate{}, ConversationTodoBatch{}, nil},
 		{"todos_update", "PATCH /agent/todos/{todoID}", ConversationTodoUpdate{}, ConversationTodo{}, nil},
 		{"todos_delete", "DELETE /agent/todos/{todoID}", ConversationTodoDelete{}, map[string]bool{}, nil},
+		{"tasks_list", "GET /agent/conversation-tasks", nil, ConversationTaskPage{}, []string{"query", "status", "source_conversation_id", "cursor", "limit"}},
+		{"tasks_get", "GET /agent/conversation-tasks/{taskID}", nil, ConversationTaskDetail{}, nil},
 		{"artifacts_list", "GET /agent/artifacts", nil, ConversationArtifactPage{}, []string{"query", "source_conversation_id", "cursor", "limit"}},
 		{"artifacts_get", "GET /agent/artifacts/{artifactID}", nil, ConversationArtifactVersion{}, []string{"version"}},
 		{"artifacts_versions", "GET /agent/artifacts/{artifactID}/versions", nil, ConversationArtifactVersions{}, []string{"before", "limit"}},
@@ -79,7 +82,7 @@ func conversationActions() []actioncontract.ActionDefinition {
 	out := []actioncontract.ActionDefinition{}
 	for _, d := range ConversationHTTPDefinitions() {
 		effect, idempotency, audit := actioncontract.EffectWrite, "request_contract", "mutation_audit_required"
-		if strings.HasPrefix(d.Pattern, "GET ") {
+		if strings.HasPrefix(d.Pattern, "GET ") || d.Operation == "result_read" {
 			effect, idempotency, audit = actioncontract.EffectRead, "not_applicable", "owner_read_audit_policy"
 		}
 		capability, label := AgentCapabilityConversation, "Persistent personal conversations"
@@ -180,6 +183,7 @@ func ConversationOpenAPIOperations() map[string]map[string]any {
 // Only authenticated service clients may supply this envelope. The server
 // binds its runtime identity to the API key's configured runtime scope.
 type ConversationRPCRequest struct {
+	ResultRead         ConversationResultRead            `json:"result_read,omitempty"`
 	DocumentID         string                            `json:"document_id,omitempty"`
 	DocumentAfter      string                            `json:"document_after,omitempty"`
 	DocumentTransfer   KnowledgeDocumentTransfer         `json:"document_transfer,omitempty"`
@@ -208,6 +212,8 @@ type ConversationRPCRequest struct {
 	TodoCreate         ConversationTodoCreate            `json:"todo_create,omitempty"`
 	TodoUpdate         ConversationTodoUpdate            `json:"todo_update,omitempty"`
 	TodoDelete         ConversationTodoDelete            `json:"todo_delete,omitempty"`
+	TaskID             string                            `json:"task_id,omitempty"`
+	TaskQuery          ConversationTaskQuery             `json:"task_query,omitempty"`
 	Response           ConversationInteractionResponse   `json:"response,omitempty"`
 	Authority          ConversationAuthority             `json:"authority"`
 	ConversationID     string                            `json:"conversation_id,omitempty"`

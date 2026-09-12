@@ -13,11 +13,14 @@ func TestAgentHTTPAdapterContractOwnsCompleteRouteCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(actions) != 76+len(ConversationToolActions()) {
+	if len(actions) != 79+len(ConversationToolActions()) {
 		t.Fatalf("Agent Action count=%d", len(actions))
 	}
 	roleActions, nonHTTPActions := 0, 0
 	for _, action := range actions {
+		if action.Key == ConversationActionPrefix+"result_read" && action.EffectClass != actioncontract.EffectRead {
+			t.Fatal("stored-result read was classified as a mutation")
+		}
 		if action.Permission != nil {
 			roleActions++
 			if action.Permission == nil || action.Permission.Key != action.Key || action.Permission.Owner != action.Owner {
@@ -47,7 +50,7 @@ func TestAgentHTTPAdapterContractOwnsCompleteRouteCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if contract.ContractVersion != AgentHTTPAdapterContractVersion || contract.Owner != "agent" || len(contract.Routes) != 73 || len(contract.OpenAPI) != 73 {
+	if contract.ContractVersion != AgentHTTPAdapterContractVersion || contract.Owner != "agent" || len(contract.Routes) != 76 || len(contract.OpenAPI) != 76 {
 		t.Fatalf("Agent HTTP contract=%s owner=%s routes=%d operations=%d", contract.ContractVersion, contract.Owner, len(contract.Routes), len(contract.OpenAPI))
 	}
 	seen := map[string]bool{}
