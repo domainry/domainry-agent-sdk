@@ -8,6 +8,7 @@ import (
 )
 
 const AgentCapabilityConversation = "agent.conversations"
+const AgentCapabilityBackgroundTasks = "agent.background_tasks"
 const AgentCapabilityPersonalTodos = "agent.personal_todos"
 const AgentCapabilityArtifacts = "agent.artifacts"
 const AgentCapabilityKnowledgeLibraries = "agent.knowledge_libraries"
@@ -69,6 +70,8 @@ func ConversationHTTPDefinitions() []ConversationHTTPDefinition {
 		{"todos_delete", "DELETE /agent/todos/{todoID}", ConversationTodoDelete{}, map[string]bool{}, nil},
 		{"tasks_list", "GET /agent/conversation-tasks", nil, ConversationTaskPage{}, []string{"query", "status", "source_conversation_id", "cursor", "limit"}},
 		{"tasks_get", "GET /agent/conversation-tasks/{taskID}", nil, ConversationTaskDetail{}, nil},
+		{"tasks_cancel", "POST /agent/conversation-tasks/{taskID}/cancel", nil, ConversationTaskDetail{}, nil},
+		{"tasks_resume", "POST /agent/conversation-tasks/{taskID}/resume", nil, ConversationTaskDetail{}, nil},
 		{"artifacts_list", "GET /agent/artifacts", nil, ConversationArtifactPage{}, []string{"query", "source_conversation_id", "cursor", "limit"}},
 		{"artifacts_get", "GET /agent/artifacts/{artifactID}", nil, ConversationArtifactVersion{}, []string{"version"}},
 		{"artifacts_versions", "GET /agent/artifacts/{artifactID}/versions", nil, ConversationArtifactVersions{}, []string{"before", "limit"}},
@@ -88,6 +91,9 @@ func conversationActions() []actioncontract.ActionDefinition {
 		capability, label := AgentCapabilityConversation, "Persistent personal conversations"
 		if strings.HasPrefix(d.Operation, "todos_") {
 			capability, label = AgentCapabilityPersonalTodos, "Personal todos"
+		}
+		if strings.HasPrefix(d.Operation, "tasks_") {
+			capability, label = AgentCapabilityBackgroundTasks, "Durable background tasks"
 		}
 		if strings.HasPrefix(d.Operation, "artifacts_") {
 			capability, label = AgentCapabilityArtifacts, "Saved artifacts"
@@ -183,6 +189,7 @@ func ConversationOpenAPIOperations() map[string]map[string]any {
 // Only authenticated service clients may supply this envelope. The server
 // binds its runtime identity to the API key's configured runtime scope.
 type ConversationRPCRequest struct {
+	ScheduledTask      ScheduledConversationTaskRequest  `json:"scheduled_task,omitempty"`
 	ResultRead         ConversationResultRead            `json:"result_read,omitempty"`
 	DocumentID         string                            `json:"document_id,omitempty"`
 	DocumentAfter      string                            `json:"document_after,omitempty"`

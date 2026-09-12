@@ -161,7 +161,7 @@ func (s *ConversationWriteScope) Allows(tool string) bool {
 		return s.PersonalTodos
 	case "artifact_create", "artifact_edit", "artifact_export":
 		return s.PersonalArtifacts
-	case "task_start":
+	case "task_start", "task_cancel", "task_resume":
 		return s.BackgroundTasks
 	default:
 		return false

@@ -12,6 +12,13 @@ const ConversationTaskStatusRunning = "running"
 const ConversationTaskStatusCompleted = "completed"
 const ConversationTaskStatusFailed = "failed"
 const ConversationTaskStatusCancelled = "cancelled"
+const ConversationTaskMaxChildrenPerRun = 4
+
+const (
+	CapabilityScheduledConversationTask       = "conversation.scheduled_task.start"
+	ActionAgentScheduledConversationTaskStart = "agent.scheduled_conversation_task.start"
+	ScheduledConversationTaskContractVersion  = "domainry-agent-scheduled-conversation-task-v1"
+)
 
 // ConversationTaskBudget is frozen when task_start is accepted. Every value is
 // also bounded by the selected Agent profile and deployment configuration.
@@ -34,10 +41,60 @@ type ConversationTaskToolScope struct {
 }
 
 type ConversationTaskStart struct {
-	Goal         string                 `json:"goal"`
-	Input        string                 `json:"input"`
-	AllowedTools []string               `json:"allowed_tools"`
-	Budget       ConversationTaskBudget `json:"budget"`
+	Goal         string                     `json:"goal"`
+	Input        string                     `json:"input"`
+	AllowedTools []string                   `json:"allowed_tools"`
+	Budget       ConversationTaskBudget     `json:"budget"`
+	FollowUp     *ConversationFollowUpScope `json:"follow_up,omitempty"`
+}
+
+// ConversationFollowUpScope makes a scheduled follow-up explicit and bounded.
+// Scheduler owns when it runs; Agent owns the observation protocol, change
+// comparison and completion result. It is accepted only on trusted scheduled
+// task requests, never on the ordinary task_start tool.
+type ConversationFollowUpScope struct {
+	CompletionCondition string `json:"completion_condition"`
+}
+
+const (
+	ConversationFollowUpReportActive     = "active"
+	ConversationFollowUpReportCompleted  = "completed"
+	ConversationFollowUpEventChanged     = "changed"
+	ConversationFollowUpEventCompleted   = "completed"
+	ConversationFollowUpEventFailed      = "failed"
+	ConversationFollowUpEventNeedsAction = "needs_action"
+)
+
+// ConversationFollowUpReport is the final, machine-readable result required
+// from every successful follow-up run. Agent hashes Observation and compares it
+// with the previous observation for the same owner and plan. Summary is the
+// only model-authored text sent to Notification.
+type ConversationFollowUpReport struct {
+	Status      string `json:"status"`
+	Observation string `json:"observation"`
+	Summary     string `json:"summary"`
+}
+
+// ConversationFollowUpEvent is Agent's source-owned notification fact. It has
+// no Notification event type, template, channel, recipient, route or provider
+// fields; Runtime is the sole adapter to Notification SDK intents.
+type ConversationFollowUpEvent struct {
+	ID         string                `json:"id"`
+	Kind       string                `json:"kind"`
+	Authority  ConversationAuthority `json:"authority"`
+	PlanID     string                `json:"plan_id"`
+	TaskID     string                `json:"task_id"`
+	RunID      string                `json:"run_id"`
+	Goal       string                `json:"goal"`
+	Summary    string                `json:"summary,omitempty"`
+	Question   string                `json:"question,omitempty"`
+	ErrorCode  string                `json:"error_code,omitempty"`
+	Occurrence int                   `json:"occurrence"`
+	OccurredAt time.Time             `json:"occurred_at"`
+}
+
+type ConversationFollowUpPublisher interface {
+	PublishConversationFollowUp(context.Context, ConversationFollowUpEvent) error
 }
 
 // ConversationTask is an Agent-owned background execution requested from a
@@ -49,6 +106,7 @@ type ConversationTask struct {
 	Input                string                      `json:"input"`
 	ToolScope            []ConversationTaskToolScope `json:"tool_scope"`
 	Budget               ConversationTaskBudget      `json:"budget"`
+	FollowUp             *ConversationFollowUpScope  `json:"follow_up,omitempty"`
 	SourceConversationID string                      `json:"source_conversation_id"`
 	SourceRunID          string                      `json:"source_run_id"`
 	ExecutionRunID       string                      `json:"execution_run_id,omitempty"`
@@ -59,6 +117,45 @@ type ConversationTask struct {
 	CreatedAt            time.Time                   `json:"created_at"`
 	UpdatedAt            time.Time                   `json:"updated_at"`
 	CompletedAt          *time.Time                  `json:"completed_at,omitempty"`
+}
+
+// ConversationTaskScheduleRef links an Agent task to the Scheduler window
+// that requested it. These are correlation facts and never authorize the
+// task, conversation, user, or tools.
+type ConversationTaskScheduleRef struct {
+	PlanID         string    `json:"plan_id"`
+	SchedulerRunID string    `json:"scheduler_run_id"`
+	ScheduledFor   time.Time `json:"scheduled_for"`
+}
+
+// ScheduledConversationTaskRequest is accepted only through the trusted
+// Runtime service boundary. Runtime maps a signed Scheduler dispatch into this
+// Agent-owned contract after resolving the current Identity principal. Agent
+// still reauthorizes the conversation and every selected tool before saving
+// the task, and the worker repeats those checks on every attempt.
+type ScheduledConversationTaskRequest struct {
+	ContractVersion string                `json:"contract_version"`
+	PlanID          string                `json:"plan_id"`
+	SchedulerRunID  string                `json:"scheduler_run_id"`
+	IdempotencyKey  string                `json:"idempotency_key"`
+	ScheduledFor    time.Time             `json:"scheduled_for"`
+	Authority       ConversationAuthority `json:"authority"`
+	ConversationID  string                `json:"conversation_id"`
+	SourceRunID     string                `json:"source_run_id,omitempty"`
+	Input           ConversationTaskStart `json:"input"`
+	AllowedActions  []string              `json:"allowed_actions"`
+}
+
+type ScheduledConversationTaskReceipt struct {
+	Task   ConversationTask `json:"task"`
+	Replay bool             `json:"replay"`
+}
+
+// ScheduledConversationTaskService is an optional ConversationService
+// extension. A browser must never call it; Module callers carry exact service
+// action evidence and SaaS exposes it only on the authenticated Runtime API.
+type ScheduledConversationTaskService interface {
+	StartScheduledConversationTask(context.Context, ScheduledConversationTaskRequest) (ScheduledConversationTaskReceipt, error)
 }
 
 // ConversationTaskQuery is an owner-scoped, live task listing. A cursor is
@@ -98,30 +195,40 @@ type ConversationTaskResult struct {
 	Complete  bool   `json:"complete"`
 }
 
+// ConversationTaskControlState is the server-derived set of transitions that
+// are valid for the task's current durable Run state. Authorization is still
+// checked again when a transition is requested.
+type ConversationTaskControlState struct {
+	CanCancel     bool   `json:"can_cancel"`
+	CanResume     bool   `json:"can_resume"`
+	ResumeBlocker string `json:"resume_blocker,omitempty"`
+}
+
 // ConversationTaskSummary is safe for HTTP and model-facing task_list. The
 // source IDs are navigation references, never authority to read that source.
 type ConversationTaskSummary struct {
-	ID                   string                   `json:"id"`
-	Status               string                   `json:"status"`
-	Goal                 string                   `json:"goal"`
-	AllowedTools         []string                 `json:"allowed_tools"`
-	Budget               ConversationTaskBudget   `json:"budget"`
-	SourceConversationID string                   `json:"source_conversation_id"`
-	SourceRunID          string                   `json:"source_run_id"`
-	ExecutionRunID       string                   `json:"execution_run_id,omitempty"`
-	Progress             ConversationTaskProgress `json:"progress"`
-	Waiting              *ConversationTaskWaiting `json:"waiting,omitempty"`
-	Result               *ConversationTaskResult  `json:"result,omitempty"`
-	Artifacts            []ConversationArtifact   `json:"artifacts"`
-	ArtifactsComplete    bool                     `json:"artifacts_complete"`
-	ArtifactsOmitted     bool                     `json:"artifacts_omitted,omitempty"`
-	AccessError          string                   `json:"access_error,omitempty"`
-	CompletionEventID    string                   `json:"completion_event_id,omitempty"`
-	CompletionEventSeq   int64                    `json:"completion_event_seq,omitempty"`
-	ErrorCode            string                   `json:"error_code,omitempty"`
-	CreatedAt            time.Time                `json:"created_at"`
-	UpdatedAt            time.Time                `json:"updated_at"`
-	CompletedAt          *time.Time               `json:"completed_at,omitempty"`
+	ID                   string                       `json:"id"`
+	Status               string                       `json:"status"`
+	Goal                 string                       `json:"goal"`
+	AllowedTools         []string                     `json:"allowed_tools"`
+	Budget               ConversationTaskBudget       `json:"budget"`
+	SourceConversationID string                       `json:"source_conversation_id"`
+	SourceRunID          string                       `json:"source_run_id"`
+	ExecutionRunID       string                       `json:"execution_run_id,omitempty"`
+	Progress             ConversationTaskProgress     `json:"progress"`
+	Control              ConversationTaskControlState `json:"control"`
+	Waiting              *ConversationTaskWaiting     `json:"waiting,omitempty"`
+	Result               *ConversationTaskResult      `json:"result,omitempty"`
+	Artifacts            []ConversationArtifact       `json:"artifacts"`
+	ArtifactsComplete    bool                         `json:"artifacts_complete"`
+	ArtifactsOmitted     bool                         `json:"artifacts_omitted,omitempty"`
+	AccessError          string                       `json:"access_error,omitempty"`
+	CompletionEventID    string                       `json:"completion_event_id,omitempty"`
+	CompletionEventSeq   int64                        `json:"completion_event_seq,omitempty"`
+	ErrorCode            string                       `json:"error_code,omitempty"`
+	CreatedAt            time.Time                    `json:"created_at"`
+	UpdatedAt            time.Time                    `json:"updated_at"`
+	CompletedAt          *time.Time                   `json:"completed_at,omitempty"`
 }
 
 // ConversationTaskDetail adds the complete bounded input, public execution
@@ -145,6 +252,13 @@ type ConversationTaskService interface {
 	ConversationTasks(context.Context, ConversationTaskQuery, ConversationAuthority) (ConversationTaskPage, error)
 }
 
+// ConversationTaskControlService is separate from the read extension so a
+// host can expose task inspection without also accepting state transitions.
+type ConversationTaskControlService interface {
+	CancelConversationTask(context.Context, string, ConversationAuthority) (ConversationTaskDetail, error)
+	ResumeConversationTask(context.Context, string, ConversationAuthority) (ConversationTaskDetail, error)
+}
+
 type ConversationTaskReceipt struct {
 	ID                   string                 `json:"id"`
 	Status               string                 `json:"status"`
@@ -160,7 +274,12 @@ func (t ConversationTask) Terminal() bool {
 }
 
 func ConversationTaskPrompt(task ConversationTask) string {
-	return "Goal:\n" + strings.TrimSpace(task.Goal) + "\n\nInput:\n" + task.Input
+	prompt := "Goal:\n" + strings.TrimSpace(task.Goal) + "\n\nInput:\n" + task.Input
+	if task.FollowUp != nil {
+		prompt += "\n\nFollow-up completion condition:\n" + strings.TrimSpace(task.FollowUp.CompletionCondition) +
+			"\n\nReturn only one JSON object with exactly these fields: status (active or completed), observation (a stable, complete value used to detect change), and summary (a concise user-facing result). Use completed only when the completion condition is met."
+	}
+	return prompt
 }
 
 // ConversationTaskExecution is frozen onto the conversation run that executes
@@ -170,6 +289,7 @@ type ConversationTaskExecution struct {
 	TaskID    string                      `json:"task_id"`
 	ToolScope []ConversationTaskToolScope `json:"tool_scope"`
 	Budget    ConversationTaskBudget      `json:"budget"`
+	FollowUp  *ConversationFollowUpScope  `json:"follow_up,omitempty"`
 }
 
 func BackgroundTaskConversationTool() ConversationToolDefinition {
@@ -179,7 +299,7 @@ func BackgroundTaskConversationTool() ConversationToolDefinition {
 		ActionKey:      ConversationToolActionPrefix + "task_start",
 		Effect:         "write",
 		Idempotency:    "key",
-		Description:    "Start a separate durable background task only when the user asks work to continue asynchronously. Provide one explicit goal, complete bounded input, an exact subset of currently available tools, and all budget values. The accepted result contains a stable task ID but does not mean the work completed. The background run rechecks current permissions and tool availability; write tools may still wait for user confirmation. A background task cannot start another task.",
+		Description:    "Start a separate durable background task only when the user asks work to continue asynchronously. Provide one explicit goal, complete bounded input, an exact subset of currently available tools, and all budget values. The accepted result contains a stable task ID but does not mean the work completed. The background run rechecks current permissions and tool availability; write tools may still wait for user confirmation. One source run can create at most four tasks, and a background task cannot use any task_* tool.",
 		InputSchema:    json.RawMessage(`{"type":"object","properties":{"goal":{"type":"string","minLength":1,"maxLength":2048},"input":{"type":"string","maxLength":8192},"allowed_tools":{"type":"array","maxItems":16,"uniqueItems":true,"items":{"type":"string","minLength":1,"maxLength":64,"pattern":"^[A-Za-z0-9_-]+$"}},"budget":{"type":"object","properties":{"max_steps":{"type":"integer","minimum":1,"maximum":32},"max_tool_calls":{"type":"integer","minimum":1,"maximum":32},"max_output_bytes":{"type":"integer","minimum":256,"maximum":65536},"timeout_seconds":{"type":"integer","minimum":1,"maximum":1800}},"required":["max_steps","max_tool_calls","max_output_bytes","timeout_seconds"],"additionalProperties":false}},"required":["goal","input","allowed_tools","budget"],"additionalProperties":false}`),
 		OutputSchema:   json.RawMessage(`{"type":"object","properties":{"task":{"type":"object","properties":{"id":{"type":"string"},"status":{"enum":["queued"]},"allowed_tools":{"type":"array","items":{"type":"string"}},"budget":{"type":"object","properties":{"max_steps":{"type":"integer"},"max_tool_calls":{"type":"integer"},"max_output_bytes":{"type":"integer"},"timeout_seconds":{"type":"integer"}},"required":["max_steps","max_tool_calls","max_output_bytes","timeout_seconds"],"additionalProperties":false},"source_conversation_id":{"type":"string"},"source_run_id":{"type":"string"},"created_at":{"type":"string","format":"date-time"}},"required":["id","status","allowed_tools","budget","source_conversation_id","source_run_id","created_at"],"additionalProperties":false}},"required":["task"],"additionalProperties":false}`),
 		TimeoutMillis:  10000,
@@ -203,5 +323,14 @@ func BackgroundTaskQueryConversationTools() []ConversationToolDefinition {
 			OutputSchema:  json.RawMessage(`{"type":"object","properties":{"items":{"type":"array","items":{"type":"object"}},"next_cursor":{"type":"string"},"complete":{"type":"boolean"}},"required":["items","complete"],"additionalProperties":false}`),
 			TimeoutMillis: 10000, MaxOutputBytes: 65536,
 		},
+	}
+}
+
+func BackgroundTaskControlConversationTools() []ConversationToolDefinition {
+	input := json.RawMessage(`{"type":"object","properties":{"id":{"type":"string","minLength":1,"maxLength":96,"pattern":"^[A-Za-z0-9_.:-]+$"}},"required":["id"],"additionalProperties":false}`)
+	output := json.RawMessage(`{"type":"object","properties":{"task":{"type":"object"}},"required":["task"],"additionalProperties":false}`)
+	return []ConversationToolDefinition{
+		{Key: "task_cancel", Version: "1", ActionKey: ConversationToolActionPrefix + "task_cancel", Effect: "write", Idempotency: "key", Description: "Cancel one durable background task only when the user asks to stop that exact task. Cancellation preserves completed effects and may expose an unresolved external write for reconciliation. A terminal task is returned unchanged.", InputSchema: input, OutputSchema: output, TimeoutMillis: 10000, MaxOutputBytes: 65536},
+		{Key: "task_resume", Version: "1", ActionKey: ConversationToolActionPrefix + "task_resume", Effect: "write", Idempotency: "key", Description: "Resume one failed, cancelled or reconciliation-waiting background task only when the user asks to continue that exact task. Current execution, source and tool permissions are checked again. A user question or confirmation must be answered through its bound interaction instead of this tool.", InputSchema: input, OutputSchema: output, TimeoutMillis: 10000, MaxOutputBytes: 65536},
 	}
 }

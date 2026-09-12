@@ -70,6 +70,7 @@ func PersonalConversationTools() []ConversationToolDefinition {
 	}
 	out = append(out, ConversationToolResultReadDefinition(), ConversationExecutionReadDefinition(), BackgroundTaskConversationTool())
 	out = append(out, BackgroundTaskQueryConversationTools()...)
+	out = append(out, BackgroundTaskControlConversationTools()...)
 	return append(out, personalTodoTools()...)
 }
 

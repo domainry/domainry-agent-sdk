@@ -46,7 +46,7 @@ func TestBackgroundTaskScopeAndPrompt(t *testing.T) {
 	for _, tool := range tools {
 		counts[tool.Key]++
 	}
-	for _, key := range []string{"task_start", "task_get", "task_list"} {
+	for _, key := range []string{"task_start", "task_get", "task_list", "task_cancel", "task_resume"} {
 		if counts[key] != 1 {
 			t.Fatalf("%s registration count = %d", key, counts[key])
 		}
@@ -54,6 +54,28 @@ func TestBackgroundTaskScopeAndPrompt(t *testing.T) {
 	prompt := ConversationTaskPrompt(ConversationTask{Goal: "  verify release  ", Input: "build 42"})
 	if !strings.Contains(prompt, "Goal:\nverify release") || !strings.Contains(prompt, "Input:\nbuild 42") {
 		t.Fatalf("unexpected frozen task prompt: %q", prompt)
+	}
+}
+
+func TestBackgroundTaskControlToolsRequireExplicitScopeAndRoutes(t *testing.T) {
+	if (&ConversationWriteScope{}).Allows("task_cancel") || !(&ConversationWriteScope{BackgroundTasks: true}).Allows("task_cancel") || !(&ConversationWriteScope{BackgroundTasks: true}).Allows("task_resume") {
+		t.Fatal("task control must use only the background-task write scope")
+	}
+	definitions := BackgroundTaskControlConversationTools()
+	if len(definitions) != 2 || definitions[0].Key != "task_cancel" || definitions[1].Key != "task_resume" {
+		t.Fatalf("task control definitions=%+v", definitions)
+	}
+	for _, definition := range definitions {
+		if definition.Effect != "write" || definition.Idempotency != "key" || definition.ActionKey != ConversationToolActionPrefix+definition.Key {
+			t.Fatalf("task control contract=%+v", definition)
+		}
+	}
+	routes := map[string]ConversationHTTPDefinition{}
+	for _, route := range ConversationHTTPDefinitions() {
+		routes[route.Operation] = route
+	}
+	if routes["tasks_cancel"].Pattern != "POST /agent/conversation-tasks/{taskID}/cancel" || routes["tasks_resume"].Pattern != "POST /agent/conversation-tasks/{taskID}/resume" {
+		t.Fatalf("task control routes=%+v", routes)
 	}
 }
 

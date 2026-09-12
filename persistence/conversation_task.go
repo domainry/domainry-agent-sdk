@@ -2,6 +2,7 @@ package persistence
 
 import (
 	"context"
+	"time"
 
 	agentsdk "github.com/domainry/domainry-agent-sdk"
 )
@@ -12,6 +13,13 @@ type ConversationTaskMutationRepository interface {
 	ApplyConversationTaskTool(context.Context, agentsdk.ConversationToolRequest, agentsdk.ConversationTask) (agentsdk.ConversationToolResult, error)
 }
 
+// ScheduledConversationTaskMutationRepository atomically accepts one trusted
+// Scheduler window into the existing Agent task queue. Implementations key
+// exact replay by owner and IdempotencyKey and must reject changed content.
+type ScheduledConversationTaskMutationRepository interface {
+	AcceptScheduledConversationTask(context.Context, agentsdk.ScheduledConversationTaskRequest, agentsdk.ConversationTask) (agentsdk.ScheduledConversationTaskReceipt, error)
+}
+
 // ConversationTaskWorkerRepository is an Agent-owned queue boundary. Launch
 // creates a normal conversation run so the existing worker, lease, execution
 // ledger and current authorization checks remain the only execution path.
@@ -20,11 +28,33 @@ type ConversationTaskWorkerRepository interface {
 	ConversationTask(context.Context, string, agentsdk.ConversationAuthority) (agentsdk.ConversationTask, error)
 }
 
+// ConversationFollowUpEventClaim is a leased Agent outbox item. Publishing is
+// at-least-once; the event ID is stable so the downstream notification owner
+// can deduplicate a retry after a process crash.
+type ConversationFollowUpEventClaim struct {
+	Event agentsdk.ConversationFollowUpEvent
+	Owner string
+	Fence int64
+}
+
+type ConversationFollowUpEventRepository interface {
+	ClaimConversationFollowUpEvent(context.Context, string, string, time.Duration) (ConversationFollowUpEventClaim, bool, error)
+	CompleteConversationFollowUpEvent(context.Context, ConversationFollowUpEventClaim) error
+	ReleaseConversationFollowUpEvent(context.Context, ConversationFollowUpEventClaim) error
+}
+
 // ConversationTaskReadRepository returns owner-scoped executor records. The
 // application layer reauthorizes and projects runs, results and artifacts.
 type ConversationTaskReadRepository interface {
 	ConversationTask(context.Context, string, agentsdk.ConversationAuthority) (agentsdk.ConversationTask, error)
 	ConversationTasks(context.Context, agentsdk.ConversationTaskQuery, agentsdk.ConversationAuthority) (ConversationTaskRecordPage, error)
+}
+
+// ConversationTaskControlRepository owns transitions that have no executing
+// run yet. Running task transitions remain atomic with ConversationRun events.
+type ConversationTaskControlRepository interface {
+	CancelQueuedConversationTask(context.Context, string, agentsdk.ConversationAuthority) (agentsdk.ConversationTask, error)
+	ResumeQueuedConversationTask(context.Context, string, agentsdk.ConversationAuthority) (agentsdk.ConversationTask, error)
 }
 
 type ConversationTaskRecordPage struct {

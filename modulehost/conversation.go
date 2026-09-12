@@ -34,6 +34,12 @@ type ConversationToolComposer interface {
 	AssembleConversationTools(agentsdk.ConversationToolHost) (agentsdk.ConversationToolHost, error)
 }
 
+// ConversationFollowUpHost optionally supplies Runtime's source-neutral sink
+// for Agent-owned follow-up facts. Agent never imports Notification contracts.
+type ConversationFollowUpHost interface {
+	ConversationFollowUpPublisher() agentsdk.ConversationFollowUpPublisher
+}
+
 // ConversationApplicationHostBinder is the optional conversation-only startup
 // boundary. The persistence host must opt into DeferredConversationHost.
 // Binding once publishes conversation services/adapters and starts recovery;

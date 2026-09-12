@@ -70,6 +70,9 @@ func (d Descriptor) Validate() error {
 	if d.HasCapability(CapabilityConversationStreamV1) && !d.HasCapability(CapabilityConversationV1) {
 		return fmt.Errorf("conversation streaming requires conversation.v1")
 	}
+	if d.HasCapability(CapabilityScheduledConversationTask) && !d.HasCapability(CapabilityConversationV1) {
+		return fmt.Errorf("scheduled conversation tasks require conversation.v1")
+	}
 	return nil
 }
 
