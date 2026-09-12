@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	toolsdk "github.com/domainry/domainry-tools-sdk"
+	"time"
 )
 
 // Conversation execution is an optional capability. The existing text-only
@@ -15,25 +16,47 @@ type ConversationExecutionStatusProvider interface{ ConversationExecutionEnabled
 // Bounded public projections. These never contain model input snapshots,
 // policy bundles, credentials, or opaque provider continuation blocks.
 type ConversationToolView struct {
-	Effect          string                       `json:"effect,omitempty"`     // trusted registration: read or write
-	Completion      string                       `json:"completion,omitempty"` // accepted: invocation acknowledged; business work remains pending
-	Citations       []ConversationCitation       `json:"citations,omitempty"`
-	ID              string                       `json:"id"`
-	Name            string                       `json:"name"`
-	Arguments       string                       `json:"arguments"`
-	Status          string                       `json:"status"`
-	ErrorCode       string                       `json:"error_code,omitempty"`
-	ResourceID      string                       `json:"resource_id,omitempty"`
-	ResultPreview   string                       `json:"result_preview,omitempty"`
-	ResultTruncated bool                         `json:"result_truncated,omitempty"`
-	ResultReference *ConversationResultReference `json:"result_reference,omitempty"`
+	Effect               string                         `json:"effect,omitempty"`     // trusted registration: read or write
+	Completion           string                         `json:"completion,omitempty"` // accepted: invocation acknowledged; business work remains pending
+	Citations            []ConversationCitation         `json:"citations,omitempty"`
+	ID                   string                         `json:"id"`
+	Name                 string                         `json:"name"`
+	Arguments            string                         `json:"arguments"`
+	Status               string                         `json:"status"`
+	ErrorCode            string                         `json:"error_code,omitempty"`
+	ResourceID           string                         `json:"resource_id,omitempty"`
+	ResultPreview        string                         `json:"result_preview,omitempty"`
+	ResultTruncated      bool                           `json:"result_truncated,omitempty"`
+	ResultReference      *ConversationResultReference   `json:"result_reference,omitempty"`
+	Authorization        *ConversationAuthorizationView `json:"authorization,omitempty"`
+	Confirmation         *ConversationConfirmationView  `json:"confirmation,omitempty"`
+	StartedAt            *time.Time                     `json:"started_at,omitempty"`
+	CompletedAt          *time.Time                     `json:"completed_at,omitempty"`
+	DurationMilliseconds int64                          `json:"duration_ms"`
 }
 type ConversationStepView struct {
-	Number  int                    `json:"number"`
-	Attempt int                    `json:"attempt"`
-	Status  string                 `json:"status"`
-	Text    string                 `json:"text"`
-	Calls   []ConversationToolView `json:"calls"`
+	Number               int                    `json:"number"`
+	Attempt              int                    `json:"attempt"`
+	Status               string                 `json:"status"`
+	Text                 string                 `json:"text"`
+	Calls                []ConversationToolView `json:"calls"`
+	Usage                map[string]any         `json:"usage,omitempty"`
+	StartedAt            *time.Time             `json:"started_at,omitempty"`
+	CompletedAt          *time.Time             `json:"completed_at,omitempty"`
+	DurationMilliseconds int64                  `json:"duration_ms"`
+}
+
+type ConversationAuthorizationView struct {
+	Status   string `json:"status"` // granted, confirmation_required, denied or failed
+	Revision string `json:"revision,omitempty"`
+	Checks   int    `json:"checks"`
+}
+
+type ConversationConfirmationView struct {
+	ID          string     `json:"id"`
+	Status      string     `json:"status"`
+	RespondedBy string     `json:"responded_by,omitempty"`
+	RespondedAt *time.Time `json:"responded_at,omitempty"`
 }
 
 // Tool definitions come from trusted host registration. A model chooses a key

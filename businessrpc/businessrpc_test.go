@@ -146,7 +146,7 @@ func fixture(t *testing.T, b *backendFixture, wrap func(http.Handler) http.Handl
 	return c, server
 }
 func actionRequest() sdk.ConversationBusinessActionRequest {
-	return sdk.ConversationBusinessActionRequest{Authority: testAuthority, Action: sdk.ConversationBusinessAction{ObjectKey: "customer", ActionKey: "create", Version: "v1", Data: json.RawMessage(`{"name":"Visible"}`)}, ConversationID: "conversation-a", RunID: "run-a", CallID: "call-a", IdempotencyKey: "key-a", Arguments: `{"name":"Visible"}`, Confirmation: &sdk.ConversationConfirmation{ID: "confirmation-a", UserID: testAuthority.UserID, ApprovedAt: time.Now().UTC()}}
+	return sdk.ConversationBusinessActionRequest{Authority: testAuthority, Action: sdk.ConversationBusinessAction{ObjectKey: "customer", ActionKey: "create", Version: "v1", Data: json.RawMessage(`{"name":"Visible"}`)}, ConversationID: "conversation-a", RunID: "run-a", CorrelationID: "run-a", CallID: "call-a", IdempotencyKey: "key-a", Arguments: `{"name":"Visible"}`, Confirmation: &sdk.ConversationConfirmation{ID: "confirmation-a", UserID: testAuthority.UserID, ApprovedAt: time.Now().UTC()}}
 }
 
 func TestHTTPBusinessProfilePreservesAllPorts(t *testing.T) {
@@ -409,10 +409,10 @@ func TestRedirectAndBounds(t *testing.T) {
 }
 
 func TestContractAndConfigurationFailBeforeIO(t *testing.T) {
-	// N02 adds three owner analysis ports, recursive DTO shapes, bounded safe
-	// analysis errors and exact result/reauthorization envelope bounds.
-	// Prior deployment pins must be updated.
-	const expected = "c19a21fafc9af80d76c6da2c0bf162c736d1db73c960815894e505f2b5f1a6c7"
+	// H01 adds a server-owned correlation ID to tool, action and workflow
+	// requests. It is additive at the Go API and requires coordinated RPC
+	// deployment pins because the transport rejects unknown fields.
+	const expected = "85426f7c854a5bc8bd35d57bbebc35c50c41a9f11d58fc601ecfd8eb74120514"
 	if ContractSHA256() != expected {
 		t.Fatalf("public contract changed without compatibility review: %s", ContractSHA256())
 	}

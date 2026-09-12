@@ -8,10 +8,12 @@ require (
 	github.com/domainry/domainry-orm v0.1.30
 )
 
-require github.com/domainry/domainry-identity-sdk v0.1.5
+require github.com/domainry/domainry-identity-sdk v0.1.7
 
 require (
-	github.com/domainry/domainry-report-sdk v0.1.7
+	github.com/domainry/domainry-report-sdk v0.1.8
 	github.com/domainry/domainry-todo v0.1.0
-	github.com/domainry/domainry-tools-sdk v0.1.0
+	github.com/domainry/domainry-tools-sdk v0.1.1
 )
+
+require github.com/domainry/domainry-notification-sdk v0.1.0 // indirect

@@ -22,6 +22,7 @@ type ConversationBusinessActionRequest struct {
 	Action         ConversationBusinessAction
 	ConversationID string
 	RunID          string
+	CorrelationID  string
 	Step           int
 	CallID         string
 	IdempotencyKey string

@@ -64,9 +64,46 @@ type ConversationRun struct {
 	BackgroundTask *ConversationTaskExecution `json:"background_task,omitempty"`
 	Model          string                     `json:"model,omitempty"`
 	Usage          map[string]any             `json:"usage,omitempty"`
-	ErrorCode      string                     `json:"error_code,omitempty"`
-	CreatedAt      time.Time                  `json:"created_at"`
-	UpdatedAt      time.Time                  `json:"updated_at"`
+	// CorrelationID is the stable Agent run identity passed to every tool owner.
+	// Audit is a bounded, safe projection of execution facts; it never contains
+	// model text, tool arguments/results, credentials, or authorization evidence.
+	CorrelationID             string                      `json:"correlation_id,omitempty"`
+	Metrics                   ConversationRunMetrics      `json:"metrics"`
+	Audit                     []ConversationRunAuditEvent `json:"audit,omitempty"`
+	AuditComplete             bool                        `json:"audit_complete"`
+	StartedAt                 *time.Time                  `json:"started_at,omitempty"`
+	CompletedAt               *time.Time                  `json:"completed_at,omitempty"`
+	DurationMilliseconds      int64                       `json:"duration_ms"`
+	QueueDurationMilliseconds int64                       `json:"queue_duration_ms"`
+	ErrorCode                 string                      `json:"error_code,omitempty"`
+	CreatedAt                 time.Time                   `json:"created_at"`
+	UpdatedAt                 time.Time                   `json:"updated_at"`
+}
+
+type ConversationRunMetrics struct {
+	Steps                 int `json:"steps"`
+	ModelCalls            int `json:"model_calls"`
+	ToolCalls             int `json:"tool_calls"`
+	ToolAttempts          int `json:"tool_attempts"`
+	AuthorizationChecks   int `json:"authorization_checks"`
+	ConfirmationDecisions int `json:"confirmation_decisions"`
+}
+
+type ConversationRunAuditEvent struct {
+	Seq                   int64     `json:"seq"`
+	Type                  string    `json:"type"` // run, model, tool, authorization, confirmation
+	Status                string    `json:"status"`
+	Step                  int       `json:"step"`
+	Attempt               int       `json:"attempt,omitempty"`
+	CallID                string    `json:"call_id,omitempty"`
+	Tool                  string    `json:"tool,omitempty"`
+	ActionKey             string    `json:"action_key,omitempty"`
+	AuthorizationRevision string    `json:"authorization_revision,omitempty"`
+	InteractionID         string    `json:"interaction_id,omitempty"`
+	ActorID               string    `json:"actor_id,omitempty"`
+	ErrorCode             string    `json:"error_code,omitempty"`
+	DurationMilliseconds  int64     `json:"duration_ms,omitempty"`
+	OccurredAt            time.Time `json:"occurred_at"`
 }
 
 func (r ConversationRun) Terminal() bool {

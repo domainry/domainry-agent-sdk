@@ -22,6 +22,7 @@ type ConversationWorkflowStartRequest struct {
 	Start          ConversationWorkflowStart
 	ConversationID string
 	RunID          string
+	CorrelationID  string
 	Step           int
 	CallID         string
 	IdempotencyKey string
