@@ -2,10 +2,17 @@ package persistence
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	agentsdk "github.com/domainry/domainry-agent-sdk"
 )
+
+// ConversationDeletionRepository is the optional durable owner-operation port.
+// A host can replay the same request after a crash between domain owners.
+type ConversationDeletionRepository interface {
+	DeleteForRequest(context.Context, string, string, int64, agentsdk.ConversationAuthority) (json.RawMessage, error)
+}
 
 type ConversationClaim struct {
 	Authority agentsdk.ConversationAuthority

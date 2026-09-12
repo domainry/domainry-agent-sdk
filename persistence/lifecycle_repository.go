@@ -2,6 +2,7 @@ package persistence
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	agentstate "github.com/domainry/domainry-agent-sdk/state"
@@ -18,8 +19,13 @@ type LifecycleQuery struct {
 }
 
 type LifecycleCandidate struct {
-	State      agentstate.AgentStateRecord
-	ResourceID string
+	State        agentstate.AgentStateRecord
+	ResourceType string
+	ResourceID   string
+	OwnerKey     string
+	Revision     int64
+	UpdatedAt    time.Time
+	Payload      json.RawMessage
 }
 
 type AgentLifecycleRepository interface {

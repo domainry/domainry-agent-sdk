@@ -412,7 +412,7 @@ func TestContractAndConfigurationFailBeforeIO(t *testing.T) {
 	// H01 adds a server-owned correlation ID to tool, action and workflow
 	// requests. It is additive at the Go API and requires coordinated RPC
 	// deployment pins because the transport rejects unknown fields.
-	const expected = "85426f7c854a5bc8bd35d57bbebc35c50c41a9f11d58fc601ecfd8eb74120514"
+	const expected = "6dd1f92a6b620c48db58d6844dc676869a6fe44063c0690fe749459f207a1a7d"
 	if ContractSHA256() != expected {
 		t.Fatalf("public contract changed without compatibility review: %s", ContractSHA256())
 	}
