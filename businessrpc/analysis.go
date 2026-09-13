@@ -18,9 +18,12 @@ type AnalysisReader interface {
 }
 
 func analysisOperation(operation string) bool {
-	return operation == "analysis_catalog" || operation == "analysis_run" || operation == "analysis_authorize_result"
+	return operation == "analysis_catalog" || operation == "analysis_run" || operation == "analysis_authorize_result" || operation == "analysis_result_read" || operation == "analysis_catalog_read"
 }
 func dispatchAnalysis(ctx context.Context, backend Backend, in request) (any, error) {
+	if in.Operation == "analysis_result_read" || in.Operation == "analysis_catalog_read" {
+		return dispatchResultRead(ctx, backend, in)
+	}
 	reader, ok := backend.(AnalysisReader)
 	if !ok {
 		return nil, failure("unavailable")

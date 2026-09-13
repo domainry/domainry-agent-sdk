@@ -70,6 +70,10 @@ type method struct {
 }
 
 var methods = []method{
+	{"report_result_read", reflect.TypeFor[reportmodel.ReportQueryResultAuthorization](), reflect.TypeFor[bool]()},
+	{"report_catalog_read", reflect.TypeFor[reportmodel.ReportCatalogReadAuthorization](), reflect.TypeFor[bool]()},
+	{"analysis_result_read", reflect.TypeFor[reportmodel.AnalysisResultAuthorization](), reflect.TypeFor[bool]()},
+	{"analysis_catalog_read", reflect.TypeFor[reportmodel.AnalysisCatalogReadAuthorization](), reflect.TypeFor[bool]()},
 	{"catalog", reflect.TypeFor[sdk.ConversationBusinessCatalogQuery](), reflect.TypeFor[sdk.ConversationBusinessCatalogPage]()},
 	{"query", reflect.TypeFor[sdk.ConversationBusinessQuery](), reflect.TypeFor[sdk.ConversationBusinessRecordPage]()},
 	{"get", reflect.TypeFor[sdk.ConversationBusinessGet](), reflect.TypeFor[sdk.ConversationBusinessRecord]()},

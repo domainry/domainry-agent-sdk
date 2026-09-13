@@ -27,10 +27,13 @@ type GovernedReportReader interface {
 }
 
 func reportOperation(operation string) bool {
-	return operation == "report_summary" || operation == "report_object_sql" || operation == "report_catalog" || operation == "report_query" || operation == "report_authorize_result"
+	return operation == "report_summary" || operation == "report_object_sql" || operation == "report_catalog" || operation == "report_query" || operation == "report_authorize_result" || operation == "report_result_read" || operation == "report_catalog_read"
 }
 
 func dispatchReport(ctx context.Context, backend Backend, in request) (any, error) {
+	if in.Operation == "report_result_read" || in.Operation == "report_catalog_read" {
+		return dispatchResultRead(ctx, backend, in)
+	}
 	if in.Operation == "report_catalog" || in.Operation == "report_query" || in.Operation == "report_authorize_result" {
 		return dispatchGovernedReport(ctx, backend, in)
 	}

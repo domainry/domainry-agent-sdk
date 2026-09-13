@@ -13,7 +13,7 @@ require github.com/domainry/domainry-identity-sdk v0.1.10
 require (
 	github.com/domainry/domainry-report-sdk v0.1.9
 	github.com/domainry/domainry-todo v0.1.1
-	github.com/domainry/domainry-tools-sdk v0.1.2
+	github.com/domainry/domainry-tools-sdk v0.1.3
 )
 
 require (

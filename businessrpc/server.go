@@ -137,6 +137,7 @@ func definition(key string) (sdk.ConversationToolDefinition, bool) {
 	defs = append(defs, sdk.BusinessActionConversationTools()...)
 	defs = append(defs, sdk.BusinessWorkflowConversationTools()...)
 	defs = append(defs, toolsdk.AnalysisDefinitions()...)
+	defs = append(defs, toolsdk.ReportQueryDefinitions()...)
 	for _, d := range defs {
 		if d.Key == key {
 			return d, true

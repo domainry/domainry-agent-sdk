@@ -22,6 +22,8 @@ github.com/domainry/domainry-tools-sdk v0.1.1 h1:GbzJXe+VtyJSwpyb3TfsdwgNpj74b76
 github.com/domainry/domainry-tools-sdk v0.1.1/go.mod h1:41IRoC2xhp8FiOsHb94+Pk+UWA+WxrGOCcTvNIILy+g=
 github.com/domainry/domainry-tools-sdk v0.1.2 h1:37UGCg+bzV4lGU6CCXaULLk7CBFRG5GMoUEIXtsZvLA=
 github.com/domainry/domainry-tools-sdk v0.1.2/go.mod h1:41IRoC2xhp8FiOsHb94+Pk+UWA+WxrGOCcTvNIILy+g=
+github.com/domainry/domainry-tools-sdk v0.1.3 h1:iVYNXpw0o3eR0iI69mXGufVLSRV6RzPCyJTskWBvLNg=
+github.com/domainry/domainry-tools-sdk v0.1.3/go.mod h1:41IRoC2xhp8FiOsHb94+Pk+UWA+WxrGOCcTvNIILy+g=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
 github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 h1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=
