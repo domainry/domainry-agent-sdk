@@ -15,6 +15,17 @@ type AnalysisResultReadSource interface {
 	AuthorizeAnalysisCatalogRead(context.Context, reportmodel.AnalysisCatalogReadAuthorization, sdk.ConversationAuthority) error
 }
 
+func (c *Client) AuthorizeBusinessResultRead(ctx context.Context, in sdk.ConversationBusinessEvidence, a sdk.ConversationAuthority) error {
+	var valid bool
+	err := c.call(ctx, "business_result_read", a, in, &valid)
+	if err == nil && !valid {
+		return failure("unavailable")
+	}
+	return err
+}
+
+var _ sdk.ConversationBusinessResultReadSource = (*Client)(nil)
+
 func dispatchResultRead(ctx context.Context, backend Backend, in request) (any, error) {
 	switch in.Operation {
 	case "report_result_read":

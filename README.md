@@ -242,6 +242,22 @@ Identity domain, with `Scope.IdentityIssuer` supplied from the actual Identity
 binding. Browser credentials and model-supplied authorities are not valid
 inputs to this server-to-server trust boundary.
 
+The optional shared Report/Analysis read ports keep the actual reader in the
+RPC authority and carry the original producer only as proof provenance. Report
+verifies its original HMAC and current source state; the reader independently
+needs results-read, audience and field access. Runtime proves that the reader's
+current row/organization projection covers the producer's projection without
+executing the old query. Agent independently checks publication of the exact
+receipt in the containing delegation; these ports do not publish private data.
+Neither producer provenance nor a saved read proof grants execution, a worker
+lease or user confirmation. Missing source support remains unavailable.
+
+The four shared read operations change the strict business profile contract to
+`0975df00be8381ea7a3ec45a9b2aa68dedcd999c8c6901bd1ad8f82466374a53`.
+Client and server pins must be updated together. Existing request/result DTOs
+and the required Go Backend interface remain unchanged; a mismatched handshake
+is rejected before any source operation.
+
 The profile includes catalog/query/get/relations, action authorization/invocation/
 reconciliation, workflow authorization/start/reconciliation/state, and current
 source revalidation/sealing. Unsupported operations remain denied by the host's

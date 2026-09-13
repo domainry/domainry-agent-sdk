@@ -13,12 +13,12 @@ func TestAgentHTTPAdapterContractOwnsCompleteRouteCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(actions) != 104+len(ConversationToolActions()) {
+	if len(actions) != 107+len(ConversationToolActions()) {
 		t.Fatalf("Agent Action count=%d", len(actions))
 	}
 	roleActions, nonHTTPActions := 0, 0
 	for _, action := range actions {
-		if action.Key == ConversationActionPrefix+"result_read" && action.EffectClass != actioncontract.EffectRead {
+		if (action.Key == ConversationActionPrefix+"result_read" || action.Key == ConversationActionPrefix+"delegations_result" || action.Key == ConversationActionPrefix+"delegations_artifact" || action.Key == ConversationActionPrefix+"delegations_export") && action.EffectClass != actioncontract.EffectRead {
 			t.Fatal("stored-result read was classified as a mutation")
 		}
 		if action.Permission != nil {
@@ -50,10 +50,14 @@ func TestAgentHTTPAdapterContractOwnsCompleteRouteCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if contract.ContractVersion != AgentHTTPAdapterContractVersion || contract.Owner != "agent" || len(contract.Routes) != 91 || len(contract.OpenAPI) != 91 {
+	if contract.ContractVersion != AgentHTTPAdapterContractVersion || contract.Owner != "agent" || len(contract.Routes) != 94 || len(contract.OpenAPI) != 94 {
 		t.Fatalf("Agent HTTP contract=%s owner=%s routes=%d operations=%d", contract.ContractVersion, contract.Owner, len(contract.Routes), len(contract.OpenAPI))
 	}
 	seen := map[string]bool{}
+	response := contract.OpenAPI["POST /agent/delegations/{delegationID}/delivery-export"]["responses"].(map[string]any)["200"].(map[string]any)["content"].(map[string]any)
+	if response["text/markdown"] == nil || response["text/csv"] == nil || response["application/json"] != nil {
+		t.Fatal("released export OpenAPI disagrees with binary HTTP response")
+	}
 	for _, route := range contract.Routes {
 		pattern := route.Pattern()
 		if seen[pattern] || contract.OpenAPI[pattern]["operationId"] == nil || contract.OpenAPI[pattern]["responses"] == nil {

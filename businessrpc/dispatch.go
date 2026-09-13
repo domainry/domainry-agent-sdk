@@ -7,6 +7,9 @@ import (
 )
 
 func dispatch(ctx context.Context, b Backend, in request) (any, error) {
+	if sharedResultReadOperation(in.Operation) {
+		return dispatchSharedResultRead(ctx, b, in)
+	}
 	if analysisOperation(in.Operation) {
 		return dispatchAnalysis(ctx, b, in)
 	}
@@ -14,6 +17,13 @@ func dispatch(ctx context.Context, b Backend, in request) (any, error) {
 		return dispatchReport(ctx, b, in)
 	}
 	switch in.Operation {
+	case "business_result_read":
+		var v sdk.ConversationBusinessEvidence
+		if decode(in.Payload, &v) != nil {
+			return nil, failure("bad_request")
+		}
+		err := sdk.AuthorizeBusinessResultRead(ctx, b, v, in.Authority)
+		return err == nil, err
 	case "catalog":
 		var v sdk.ConversationBusinessCatalogQuery
 		if decode(in.Payload, &v) != nil {

@@ -81,11 +81,12 @@ func NewHandler(o ServerOptions) (http.Handler, error) {
 			writeFailure(w, failure("forbidden"))
 			return
 		}
-		// Report reads and analyses use their owner's application permission boundary.
+		// Report reads, analyses and business receipt reads use the owner's
+		// application permission boundary.
 		// They are host ports, not published conversation tools. They still passed
 		// scope and current execution authorization above; ReportReader must resolve
 		// current Identity again and invoke its actual Report owner.
-		if !reportOperation(in.Operation) && !analysisOperation(in.Operation) {
+		if !reportOperation(in.Operation) && !analysisOperation(in.Operation) && !sharedResultReadOperation(in.Operation) && in.Operation != "business_result_read" {
 			tool, err := operationTool(in)
 			if err != nil {
 				writeFailure(w, err)

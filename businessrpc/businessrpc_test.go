@@ -226,7 +226,7 @@ func TestHTTPBusinessProfilePreservesAllPorts(t *testing.T) {
 	}
 	for _, m := range methods {
 		key := m.key
-		if key == "tool_authorize" || reportOperation(key) || analysisOperation(key) {
+		if key == "tool_authorize" || key == "business_result_read" || reportOperation(key) || analysisOperation(key) || sharedResultReadOperation(key) {
 			continue
 		}
 		if b.count(key) != 1 {
@@ -409,10 +409,12 @@ func TestRedirectAndBounds(t *testing.T) {
 }
 
 func TestContractAndConfigurationFailBeforeIO(t *testing.T) {
-	// H01 adds a server-owned correlation ID to tool, action and workflow
-	// requests. It is additive at the Go API and requires coordinated RPC
-	// deployment pins because the transport rejects unknown fields.
-	const expected = "6dd1f92a6b620c48db58d6844dc676869a6fe44063c0690fe749459f207a1a7d"
+	// C05 adds explicit shared Report/Analysis provenance to optional read ports.
+	// The actual reader remains the RPC authority; producer is proof context.
+	// Existing DTOs and Go Backend remain unchanged, but strict descriptors require
+	// coordinated client/server deployment pins. Only explicit unsupported
+	// owners retain the old tool authorization path; denials never fall back.
+	const expected = "0975df00be8381ea7a3ec45a9b2aa68dedcd999c8c6901bd1ad8f82466374a53"
 	if ContractSHA256() != expected {
 		t.Fatalf("public contract changed without compatibility review: %s", ContractSHA256())
 	}

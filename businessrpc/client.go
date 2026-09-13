@@ -139,6 +139,9 @@ func (c *Client) call(ctx context.Context, op string, a sdk.ConversationAuthorit
 	return nil
 }
 func safeCode(code, class string) string {
+	if class == "unavailable" && code == sdk.BusinessResultReadUnsupportedCode {
+		return code
+	}
 	switch code {
 	case "business_action_changed", "business_action_invalid", "business_record_version_conflict", "business_action_assurance_required", "business_action_receipt_conflict":
 		return code

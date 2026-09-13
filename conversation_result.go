@@ -11,6 +11,35 @@ type ConversationResultReader interface {
 	ReadResult(context.Context, string, string, ConversationResultRead, ConversationAuthority) (ConversationResultSlice, error)
 }
 
+// ConversationDeliveryResultReader is optional. Only exact receipts submitted
+// in the selected delivery/verification are readable; each page rechecks the
+// current collaboration and source-owned reading permissions.
+type ConversationDeliveryResultReader interface {
+	ReadConversationDeliveryResult(context.Context, string, ConversationDeliveryResultRead, ConversationAuthority) (ConversationResultSlice, error)
+}
+
+type ConversationDeliveryResultRead struct {
+	// Zero selects the current delivery. A positive value selects an exact
+	// immutable revision returned by ConversationDeliveryHistory.
+	DeliveryRevision int64 `json:"delivery_revision,omitempty"`
+	ConversationResultRead
+}
+
+// Full artifact resources must be explicitly identified by a released artifact
+// tool receipt. A metadata or partial-text receipt never grants mutation rights.
+type ConversationDeliveryArtifactReader interface {
+	ReadConversationDeliveryArtifact(context.Context, string, ConversationDeliveryArtifactRead, ConversationAuthority) (ConversationArtifactVersion, error)
+	DownloadConversationDeliveryArtifact(context.Context, string, ConversationDeliveryArtifactRead, ConversationAuthority) (ConversationArtifactDownload, error)
+}
+
+type ConversationDeliveryArtifactRead struct {
+	DeliveryRevision int64                       `json:"delivery_revision,omitempty"`
+	Reference        ConversationResultReference `json:"reference"`
+	ArtifactID       string                      `json:"artifact_id"`
+	Version          int64                       `json:"version"`
+	ExportID         string                      `json:"export_id,omitempty"`
+}
+
 // A reference identifies one immutable, owner-scoped tool result. It never
 // grants access: readers must reauthorize the original tool and its resources.
 type ConversationResultReference struct {

@@ -35,6 +35,9 @@ func ConversationHTTPDefinitions() []ConversationHTTPDefinition {
 		{"delegations_history", "GET /agent/delegations/{delegationID}/requirements", nil, ConversationAgreementHistory{}, []string{"before_revision"}},
 		{"delegations_disagreement", "GET /agent/delegations/{delegationID}/disagreements/{disagreementID}", nil, ConversationDisagreementHistory{}, []string{"before_revision"}},
 		{"delegations_deliveries", "GET /agent/delegations/{delegationID}/deliveries", nil, ConversationDeliveryHistory{}, []string{"before_revision"}},
+		{"delegations_result", "POST /agent/delegations/{delegationID}/delivery-result", ConversationDeliveryResultRead{}, ConversationResultSlice{}, nil},
+		{"delegations_artifact", "POST /agent/delegations/{delegationID}/delivery-artifact", ConversationDeliveryArtifactRead{}, ConversationArtifactVersion{}, nil},
+		{"delegations_export", "POST /agent/delegations/{delegationID}/delivery-export", ConversationDeliveryArtifactRead{}, ConversationArtifactDownload{}, nil},
 		{"delegations_update", "POST /agent/delegations/{delegationID}/decisions", ConversationDelegationUpdate{}, ConversationDelegationDetail{}, nil},
 		{"delegations_message", "POST /agent/delegations/{delegationID}/messages", ConversationAgentMessageSend{}, ConversationAgentMessage{}, nil},
 		{"create", "POST /agent/conversations", ConversationCreate{}, Conversation{}, nil},
@@ -99,7 +102,7 @@ func conversationActions() []actioncontract.ActionDefinition {
 	out := []actioncontract.ActionDefinition{}
 	for _, d := range ConversationHTTPDefinitions() {
 		effect, idempotency, audit := actioncontract.EffectWrite, "request_contract", "mutation_audit_required"
-		if strings.HasPrefix(d.Pattern, "GET ") || d.Operation == "result_read" || d.Operation == "agents_match" {
+		if strings.HasPrefix(d.Pattern, "GET ") || d.Operation == "result_read" || d.Operation == "delegations_result" || d.Operation == "delegations_artifact" || d.Operation == "delegations_export" || d.Operation == "agents_match" {
 			effect, idempotency, audit = actioncontract.EffectRead, "not_applicable", "owner_read_audit_policy"
 		}
 		capability, label := AgentCapabilityConversation, "Persistent personal conversations"
@@ -152,7 +155,7 @@ func ConversationOpenAPIOperations() map[string]map[string]any {
 		if d.Operation == "stream" {
 			content = map[string]any{"text/event-stream": map[string]any{"schema": map[string]any{"type": "string"}}}
 		}
-		if d.Operation == "artifacts_download" {
+		if d.Operation == "artifacts_download" || d.Operation == "delegations_export" {
 			binary := map[string]any{"schema": map[string]any{"type": "string", "format": "binary"}}
 			content = map[string]any{"text/markdown": binary, "text/csv": binary}
 		}
@@ -206,61 +209,63 @@ func ConversationOpenAPIOperations() map[string]map[string]any {
 // Only authenticated service clients may supply this envelope. The server
 // binds its runtime identity to the API key's configured runtime scope.
 type ConversationRPCRequest struct {
-	DisagreementID     string                            `json:"disagreement_id,omitempty"`
-	AgreementBefore    int64                             `json:"agreement_before,omitempty"`
-	AgentMatch         ConversationAgentMatchRequest     `json:"agent_match,omitempty"`
-	AgentID            string                            `json:"agent_id,omitempty"`
-	AgentWrite         ConversationAgentWrite            `json:"agent_write,omitempty"`
-	DelegationID       string                            `json:"delegation_id,omitempty"`
-	DelegationCreate   ConversationDelegationCreate      `json:"delegation_create,omitempty"`
-	DelegationUpdate   ConversationDelegationUpdate      `json:"delegation_update,omitempty"`
-	AgentMessage       ConversationAgentMessageSend      `json:"agent_message,omitempty"`
-	ScheduledTask      ScheduledConversationTaskRequest  `json:"scheduled_task,omitempty"`
-	ResultRead         ConversationResultRead            `json:"result_read,omitempty"`
-	DocumentID         string                            `json:"document_id,omitempty"`
-	DocumentAfter      string                            `json:"document_after,omitempty"`
-	DocumentTransfer   KnowledgeDocumentTransfer         `json:"document_transfer,omitempty"`
-	DocumentImport     KnowledgeAttachmentImport         `json:"document_import,omitempty"`
-	DocumentUpload     KnowledgeDocumentUpload           `json:"document_upload,omitempty"`
-	LibraryID          string                            `json:"library_id,omitempty"`
-	LibraryUserID      string                            `json:"library_user_id,omitempty"`
-	LibraryAfter       string                            `json:"library_after,omitempty"`
-	LibraryCreate      KnowledgeLibraryCreate            `json:"library_create,omitempty"`
-	LibrarySourceWrite KnowledgeLibrarySourceWrite       `json:"library_source_write,omitempty"`
-	LibraryUpdate      KnowledgeLibraryUpdate            `json:"library_update,omitempty"`
-	LibraryMemberWrite KnowledgeLibraryMemberWrite       `json:"library_member_write,omitempty"`
-	AttachmentID       string                            `json:"attachment_id,omitempty"`
-	AttachmentAfter    string                            `json:"attachment_after,omitempty"`
-	AttachmentUpload   ConversationAttachmentUpload      `json:"attachment_upload,omitempty"`
-	ArtifactID         string                            `json:"artifact_id,omitempty"`
-	ArtifactVersion    int64                             `json:"artifact_version,omitempty"`
-	ArtifactBefore     int64                             `json:"artifact_before,omitempty"`
-	ArtifactExportID   string                            `json:"artifact_export_id,omitempty"`
-	ArtifactQuery      ConversationArtifactQuery         `json:"artifact_query,omitempty"`
-	ArtifactCreate     ConversationArtifactCreate        `json:"artifact_create,omitempty"`
-	ArtifactEdit       ConversationArtifactEdit          `json:"artifact_edit,omitempty"`
-	ArtifactExport     ConversationArtifactExportRequest `json:"artifact_export,omitempty"`
-	TodoID             string                            `json:"todo_id,omitempty"`
-	TodoQuery          ConversationTodoQuery             `json:"todo_query,omitempty"`
-	TodoCreate         ConversationTodoCreate            `json:"todo_create,omitempty"`
-	TodoUpdate         ConversationTodoUpdate            `json:"todo_update,omitempty"`
-	TodoDelete         ConversationTodoDelete            `json:"todo_delete,omitempty"`
-	TaskID             string                            `json:"task_id,omitempty"`
-	TaskQuery          ConversationTaskQuery             `json:"task_query,omitempty"`
-	Response           ConversationInteractionResponse   `json:"response,omitempty"`
-	Authority          ConversationAuthority             `json:"authority"`
-	ConversationID     string                            `json:"conversation_id,omitempty"`
-	RunID              string                            `json:"run_id,omitempty"`
-	MemoryID           string                            `json:"memory_id,omitempty"`
-	Revision           int64                             `json:"revision,omitempty"`
-	AfterSeq           int64                             `json:"after_seq,omitempty"`
-	Limit              int                               `json:"limit,omitempty"`
-	Create             ConversationCreate                `json:"create,omitempty"`
-	Query              ConversationQuery                 `json:"query,omitempty"`
-	Update             ConversationUpdate                `json:"update,omitempty"`
-	Send               ConversationSend                  `json:"send,omitempty"`
-	Messages           ConversationMessageQuery          `json:"messages,omitempty"`
-	Memory             ConversationMemoryWrite           `json:"memory,omitempty"`
+	DisagreementID       string                            `json:"disagreement_id,omitempty"`
+	AgreementBefore      int64                             `json:"agreement_before,omitempty"`
+	AgentMatch           ConversationAgentMatchRequest     `json:"agent_match,omitempty"`
+	AgentID              string                            `json:"agent_id,omitempty"`
+	AgentWrite           ConversationAgentWrite            `json:"agent_write,omitempty"`
+	DelegationID         string                            `json:"delegation_id,omitempty"`
+	DelegationCreate     ConversationDelegationCreate      `json:"delegation_create,omitempty"`
+	DelegationUpdate     ConversationDelegationUpdate      `json:"delegation_update,omitempty"`
+	AgentMessage         ConversationAgentMessageSend      `json:"agent_message,omitempty"`
+	ScheduledTask        ScheduledConversationTaskRequest  `json:"scheduled_task,omitempty"`
+	ResultRead           ConversationResultRead            `json:"result_read,omitempty"`
+	DeliveryResultRead   ConversationDeliveryResultRead    `json:"delivery_result_read,omitempty"`
+	DeliveryArtifactRead ConversationDeliveryArtifactRead  `json:"delivery_artifact_read,omitempty"`
+	DocumentID           string                            `json:"document_id,omitempty"`
+	DocumentAfter        string                            `json:"document_after,omitempty"`
+	DocumentTransfer     KnowledgeDocumentTransfer         `json:"document_transfer,omitempty"`
+	DocumentImport       KnowledgeAttachmentImport         `json:"document_import,omitempty"`
+	DocumentUpload       KnowledgeDocumentUpload           `json:"document_upload,omitempty"`
+	LibraryID            string                            `json:"library_id,omitempty"`
+	LibraryUserID        string                            `json:"library_user_id,omitempty"`
+	LibraryAfter         string                            `json:"library_after,omitempty"`
+	LibraryCreate        KnowledgeLibraryCreate            `json:"library_create,omitempty"`
+	LibrarySourceWrite   KnowledgeLibrarySourceWrite       `json:"library_source_write,omitempty"`
+	LibraryUpdate        KnowledgeLibraryUpdate            `json:"library_update,omitempty"`
+	LibraryMemberWrite   KnowledgeLibraryMemberWrite       `json:"library_member_write,omitempty"`
+	AttachmentID         string                            `json:"attachment_id,omitempty"`
+	AttachmentAfter      string                            `json:"attachment_after,omitempty"`
+	AttachmentUpload     ConversationAttachmentUpload      `json:"attachment_upload,omitempty"`
+	ArtifactID           string                            `json:"artifact_id,omitempty"`
+	ArtifactVersion      int64                             `json:"artifact_version,omitempty"`
+	ArtifactBefore       int64                             `json:"artifact_before,omitempty"`
+	ArtifactExportID     string                            `json:"artifact_export_id,omitempty"`
+	ArtifactQuery        ConversationArtifactQuery         `json:"artifact_query,omitempty"`
+	ArtifactCreate       ConversationArtifactCreate        `json:"artifact_create,omitempty"`
+	ArtifactEdit         ConversationArtifactEdit          `json:"artifact_edit,omitempty"`
+	ArtifactExport       ConversationArtifactExportRequest `json:"artifact_export,omitempty"`
+	TodoID               string                            `json:"todo_id,omitempty"`
+	TodoQuery            ConversationTodoQuery             `json:"todo_query,omitempty"`
+	TodoCreate           ConversationTodoCreate            `json:"todo_create,omitempty"`
+	TodoUpdate           ConversationTodoUpdate            `json:"todo_update,omitempty"`
+	TodoDelete           ConversationTodoDelete            `json:"todo_delete,omitempty"`
+	TaskID               string                            `json:"task_id,omitempty"`
+	TaskQuery            ConversationTaskQuery             `json:"task_query,omitempty"`
+	Response             ConversationInteractionResponse   `json:"response,omitempty"`
+	Authority            ConversationAuthority             `json:"authority"`
+	ConversationID       string                            `json:"conversation_id,omitempty"`
+	RunID                string                            `json:"run_id,omitempty"`
+	MemoryID             string                            `json:"memory_id,omitempty"`
+	Revision             int64                             `json:"revision,omitempty"`
+	AfterSeq             int64                             `json:"after_seq,omitempty"`
+	Limit                int                               `json:"limit,omitempty"`
+	Create               ConversationCreate                `json:"create,omitempty"`
+	Query                ConversationQuery                 `json:"query,omitempty"`
+	Update               ConversationUpdate                `json:"update,omitempty"`
+	Send                 ConversationSend                  `json:"send,omitempty"`
+	Messages             ConversationMessageQuery          `json:"messages,omitempty"`
+	Memory               ConversationMemoryWrite           `json:"memory,omitempty"`
 }
 
 func ConversationInteractionPermission() *actioncontract.PermissionDefinition {

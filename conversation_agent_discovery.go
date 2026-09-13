@@ -22,8 +22,10 @@ type ConversationSkillSummary struct {
 	AllowedTools []string `json:"allowed_tools"`
 }
 
-// Requirements describe task fit, never permissions. Sources are checked for
-// use in a new isolated conversation and do not grant access to private files.
+// Requirements describe task fit, never permissions. Sources are explicit run
+// prefixes checked for a new isolated conversation. Admitted roots can be read
+// with delegation_source_read under live source-owned result permissions;
+// references never grant raw execution or access to private files.
 type ConversationAgentRequirements struct {
 	TaskType string                     `json:"task_type,omitempty"`
 	Tools    []string                   `json:"tools,omitempty"`

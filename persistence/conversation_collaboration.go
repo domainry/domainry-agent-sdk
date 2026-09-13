@@ -6,12 +6,15 @@ import (
 )
 
 type ConversationDelegationAdmission struct {
-	SourceAgent agentsdk.ConversationAgentSnapshot
-	Request     agentsdk.ConversationDelegationCreate
-	FromAgentID string
-	SourceRunID string
-	Agent       agentsdk.ConversationAgentSnapshot
-	Task        agentsdk.ConversationTask
+	// Supplied only by the trusted admission service after the receiving
+	// subject's own authorization. This is not a public request parameter.
+	ExecutionAuthority *agentsdk.ConversationAuthority `json:"-"`
+	SourceAgent        agentsdk.ConversationAgentSnapshot
+	Request            agentsdk.ConversationDelegationCreate
+	FromAgentID        string
+	SourceRunID        string
+	Agent              agentsdk.ConversationAgentSnapshot
+	Task               agentsdk.ConversationTask
 }
 
 type ConversationDelegationTransferAdmission struct {
@@ -24,6 +27,41 @@ type ConversationDelegationTransferAdmission struct {
 type ConversationDeliveryVerificationRepository interface {
 	ConversationDeliveryHistory(context.Context, string, int64, agentsdk.ConversationAuthority) (agentsdk.ConversationDeliveryHistory, error)
 	PreviewConversationDeliveryVerification(context.Context, string, agentsdk.ConversationAuthority) (agentsdk.ConversationDeliveryVerification, error)
+}
+
+type ConversationDelegationParticipantRepository interface {
+	SetConversationDelegationParticipants(context.Context, string, agentsdk.ConversationDelegationUpdate, agentsdk.ConversationAuthority) (agentsdk.ConversationDelegation, error)
+	SupersedeConversationParticipantMessage(context.Context, string, agentsdk.ConversationAuthority) error
+}
+
+// Internal execution routing for an already admitted delegation. These values
+// are not policy decisions and must never replace the actual reader's identity.
+type ConversationDelegationAuthorities struct {
+	Issuer   agentsdk.ConversationAuthority
+	Executor agentsdk.ConversationAuthority
+}
+
+type ConversationDelegationExecutionRepository interface {
+	ConversationDelegationAuthorities(context.Context, string, agentsdk.ConversationAuthority) (ConversationDelegationAuthorities, error)
+	ConversationDelegationTask(context.Context, string, agentsdk.ConversationAuthority) (agentsdk.ConversationTask, error)
+}
+
+// An immutable, narrowly scoped evidence release created with the submitted
+// contract, message or delivery. The application still checks current sharing,
+// collaboration and data-reader policy; this is only ledger routing metadata.
+type ConversationSourceRelease struct {
+	DelegationID string
+	Purpose      string
+	Reference    agentsdk.ConversationRunReference
+	Producer     agentsdk.ConversationAuthority
+	// Publisher can differ from the immutable producer's role. Legacy entries
+	// require a publisher recovered from a recorded publication; an unknown
+	// publisher never grants access and requires an explicit new submission.
+	Publisher *agentsdk.ConversationAuthority `json:",omitempty"`
+}
+
+type ConversationSourceReleaseRepository interface {
+	ConversationSourceReleases(context.Context, agentsdk.ConversationRunReference, agentsdk.ConversationAuthority) ([]ConversationSourceRelease, error)
 }
 
 type ConversationDelegationTransferRepository interface {
@@ -51,8 +89,9 @@ type ConversationCollaborationRepository interface {
 	SendConversationAgentMessage(context.Context, string, agentsdk.ConversationAgentMessageSend, string, agentsdk.ConversationAuthority) (agentsdk.ConversationAgentMessage, error)
 }
 
-// Discovery reads only owner-owned execution facts. No tool contents or other
-// owners' task identities cross this port. History is a bounded recent sample.
+// Discovery aggregates live load for owned or explicitly shared Agent
+// identities. History is a bounded sample belonging to the actual caller. No
+// tool contents or other owners' task identities cross this port.
 type ConversationAgentObservation struct {
 	ConfigurationDigest string
 	AgentID             string

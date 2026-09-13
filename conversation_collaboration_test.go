@@ -7,7 +7,7 @@ import (
 
 func TestCollaborationToolsPreserveSourceReferencesAndOwnTheirSchemas(t *testing.T) {
 	first := ConversationCollaborationTools()
-	if len(first) != 6 {
+	if len(first) != 7 {
 		t.Fatal("incomplete peer protocol")
 	}
 	for _, tool := range first {
