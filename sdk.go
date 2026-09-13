@@ -67,6 +67,9 @@ func (d Descriptor) Validate() error {
 			}
 		}
 	}
+	if d.HasCapability(CapabilityConversationCollaborationV1) && !d.HasCapability(CapabilityConversationV1) {
+		return fmt.Errorf("conversation collaboration requires persistent conversations")
+	}
 	if d.HasCapability(CapabilityConversationStreamV1) && !d.HasCapability(CapabilityConversationV1) {
 		return fmt.Errorf("conversation streaming requires conversation.v1")
 	}

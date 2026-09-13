@@ -15,24 +15,32 @@ type ConversationExecutionStatusProvider interface{ ConversationExecutionEnabled
 
 // Bounded public projections. These never contain model input snapshots,
 // policy bundles, credentials, or opaque provider continuation blocks.
+type ConversationOutcomeInspectionView struct {
+	Status    string    `json:"status"`
+	ActorID   string    `json:"actor_id"`
+	CheckedAt time.Time `json:"checked_at"`
+}
+
 type ConversationToolView struct {
-	Effect               string                         `json:"effect,omitempty"`     // trusted registration: read or write
-	Completion           string                         `json:"completion,omitempty"` // accepted: invocation acknowledged; business work remains pending
-	Citations            []ConversationCitation         `json:"citations,omitempty"`
-	ID                   string                         `json:"id"`
-	Name                 string                         `json:"name"`
-	Arguments            string                         `json:"arguments"`
-	Status               string                         `json:"status"`
-	ErrorCode            string                         `json:"error_code,omitempty"`
-	ResourceID           string                         `json:"resource_id,omitempty"`
-	ResultPreview        string                         `json:"result_preview,omitempty"`
-	ResultTruncated      bool                           `json:"result_truncated,omitempty"`
-	ResultReference      *ConversationResultReference   `json:"result_reference,omitempty"`
-	Authorization        *ConversationAuthorizationView `json:"authorization,omitempty"`
-	Confirmation         *ConversationConfirmationView  `json:"confirmation,omitempty"`
-	StartedAt            *time.Time                     `json:"started_at,omitempty"`
-	CompletedAt          *time.Time                     `json:"completed_at,omitempty"`
-	DurationMilliseconds int64                          `json:"duration_ms"`
+	ReusedFrom           *ConversationResultReference       `json:"reused_from,omitempty"`
+	OutcomeInspection    *ConversationOutcomeInspectionView `json:"outcome_inspection,omitempty"`
+	Effect               string                             `json:"effect,omitempty"`     // trusted registration: read or write
+	Completion           string                             `json:"completion,omitempty"` // accepted: invocation acknowledged; business work remains pending
+	Citations            []ConversationCitation             `json:"citations,omitempty"`
+	ID                   string                             `json:"id"`
+	Name                 string                             `json:"name"`
+	Arguments            string                             `json:"arguments"`
+	Status               string                             `json:"status"`
+	ErrorCode            string                             `json:"error_code,omitempty"`
+	ResourceID           string                             `json:"resource_id,omitempty"`
+	ResultPreview        string                             `json:"result_preview,omitempty"`
+	ResultTruncated      bool                               `json:"result_truncated,omitempty"`
+	ResultReference      *ConversationResultReference       `json:"result_reference,omitempty"`
+	Authorization        *ConversationAuthorizationView     `json:"authorization,omitempty"`
+	Confirmation         *ConversationConfirmationView      `json:"confirmation,omitempty"`
+	StartedAt            *time.Time                         `json:"started_at,omitempty"`
+	CompletedAt          *time.Time                         `json:"completed_at,omitempty"`
+	DurationMilliseconds int64                              `json:"duration_ms"`
 }
 type ConversationStepView struct {
 	Number               int                    `json:"number"`
@@ -88,6 +96,9 @@ type ConversationModelIdentity struct {
 }
 
 type ConversationStepRequest struct {
+	// ContextSources records server-assembled context provenance for later authorization checks.
+	ContextSources   []ConversationRunReference     `json:"context_sources,omitempty"`
+	InboxMessageIDs  []string                       `json:"inbox_message_ids,omitempty"`
 	Messages         []ConversationStepMessage      `json:"messages"`
 	Tools            []ConversationToolDefinition   `json:"tools"`
 	ModelIdentity    ConversationModelIdentity      `json:"model_identity"`
@@ -141,3 +152,9 @@ type ConversationToolHost interface {
 	InvokeConversationTool(context.Context, ConversationToolRequest) (ConversationToolResult, error)
 	ReconcileConversationTool(context.Context, ConversationToolRequest) (ConversationToolResult, error)
 }
+
+type ConversationOutcomeInspector = toolsdk.OutcomeInspector
+
+// Independent source-owned authorization of a persisted, released result.
+// Access to its containing collaboration delivery must be authorized separately.
+type ConversationToolResultReadAuthorizer = toolsdk.ResultReadAuthorizer

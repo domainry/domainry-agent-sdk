@@ -14,6 +14,8 @@ const CapabilityConversationStreamV1 = "conversation.stream.v1"
 type ConversationAuthority = toolsdk.Authority
 
 type Conversation struct {
+	DelegationID  string    `json:"delegation_id,omitempty"`
+	AgentID       string    `json:"agent_id,omitempty"`
 	ID            string    `json:"id"`
 	Title         string    `json:"title"`
 	RuntimeID     string    `json:"runtime_id"`
@@ -30,6 +32,7 @@ type Conversation struct {
 }
 
 type ConversationMessage struct {
+	PeerEvent        *ConversationPeerEvent `json:"peer_event,omitempty"`
 	Citations        []ConversationCitation `json:"citations,omitempty"`    // current, authorized read projection
 	AccessError      string                 `json:"access_error,omitempty"` // read projection; original content is retained internally
 	InteractionID    string                 `json:"interaction_id,omitempty"`
@@ -44,15 +47,16 @@ type ConversationMessage struct {
 }
 
 type ConversationRun struct {
-	AccessError        string `json:"access_error,omitempty"` // source data is withheld from this projection
-	ID                 string `json:"id"`
-	ConversationID     string `json:"conversation_id"`
-	ClientMessageID    string `json:"client_message_id"`
-	RequestHash        string `json:"-"`
-	Status             string `json:"status"` // queued, running, completed, failed, cancelled
-	UserSeq            int64  `json:"user_seq"`
-	AssistantMessageID string `json:"assistant_message_id,omitempty"`
-	Attempt            int    `json:"attempt"`
+	Agent              *ConversationAgentSnapshot `json:"agent,omitempty"`
+	AccessError        string                     `json:"access_error,omitempty"` // source data is withheld from this projection
+	ID                 string                     `json:"id"`
+	ConversationID     string                     `json:"conversation_id"`
+	ClientMessageID    string                     `json:"client_message_id"`
+	RequestHash        string                     `json:"-"`
+	Status             string                     `json:"status"` // queued, running, completed, failed, cancelled
+	UserSeq            int64                      `json:"user_seq"`
+	AssistantMessageID string                     `json:"assistant_message_id,omitempty"`
+	Attempt            int                        `json:"attempt"`
 	// Draft belongs to Attempt and is never included in conversation history.
 	DraftText      string                     `json:"draft_text,omitempty"`
 	DraftBytes     int                        `json:"draft_bytes"`
@@ -177,6 +181,7 @@ type ConversationMemory struct {
 }
 
 type ConversationCreate struct {
+	AgentID       string `json:"agent_id,omitempty"`
 	ClientID      string `json:"client_id"`
 	Title         string `json:"title,omitempty"`
 	MemoryEnabled bool   `json:"memory_enabled"`
@@ -188,9 +193,11 @@ type ConversationUpdate struct {
 	MemoryEnabled    *bool   `json:"memory_enabled,omitempty"`
 }
 type ConversationSend struct {
-	ClientMessageID string                  `json:"client_message_id"`
-	Message         string                  `json:"message"`
-	WriteScope      *ConversationWriteScope `json:"write_scope,omitempty"`
+	// ExecutionAgent is prepared by the application, never accepted from JSON.
+	ExecutionAgent  *ConversationAgentSnapshot `json:"-"`
+	ClientMessageID string                     `json:"client_message_id"`
+	Message         string                     `json:"message"`
+	WriteScope      *ConversationWriteScope    `json:"write_scope,omitempty"`
 }
 
 // A scope is explicitly submitted by the authenticated user and frozen on one

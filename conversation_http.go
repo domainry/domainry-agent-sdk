@@ -7,6 +7,7 @@ import (
 	"github.com/domainry/domainry-foundation/modulecapability"
 )
 
+const AgentCapabilityCollaboration = "agent.collaboration"
 const AgentCapabilityConversation = "agent.conversations"
 const AgentCapabilityBackgroundTasks = "agent.background_tasks"
 const AgentCapabilityPersonalTodos = "agent.personal_todos"
@@ -23,6 +24,19 @@ type ConversationHTTPDefinition struct {
 
 func ConversationHTTPDefinitions() []ConversationHTTPDefinition {
 	return []ConversationHTTPDefinition{
+		{"agents_access", "GET /agent/collaboration-access", nil, ConversationCollaborationAuthorization{}, nil},
+		{"agents_list", "GET /agent/agents", nil, ConversationAgentPage{}, nil},
+		{"agents_match", "POST /agent/agents/matches", ConversationAgentMatchRequest{}, ConversationAgentMatchPage{}, nil},
+		{"agents_create", "POST /agent/agents", ConversationAgentWrite{}, ConversationAgent{}, nil},
+		{"agents_update", "PUT /agent/agents/{agentID}", ConversationAgentWrite{}, ConversationAgent{}, nil},
+		{"delegations_list", "GET /agent/delegations", nil, ConversationDelegationPage{}, []string{"source_conversation_id"}},
+		{"delegations_create", "POST /agent/delegations", ConversationDelegationCreate{}, ConversationDelegationDetail{}, nil},
+		{"delegations_get", "GET /agent/delegations/{delegationID}", nil, ConversationDelegationDetail{}, nil},
+		{"delegations_history", "GET /agent/delegations/{delegationID}/requirements", nil, ConversationAgreementHistory{}, []string{"before_revision"}},
+		{"delegations_disagreement", "GET /agent/delegations/{delegationID}/disagreements/{disagreementID}", nil, ConversationDisagreementHistory{}, []string{"before_revision"}},
+		{"delegations_deliveries", "GET /agent/delegations/{delegationID}/deliveries", nil, ConversationDeliveryHistory{}, []string{"before_revision"}},
+		{"delegations_update", "POST /agent/delegations/{delegationID}/decisions", ConversationDelegationUpdate{}, ConversationDelegationDetail{}, nil},
+		{"delegations_message", "POST /agent/delegations/{delegationID}/messages", ConversationAgentMessageSend{}, ConversationAgentMessage{}, nil},
 		{"create", "POST /agent/conversations", ConversationCreate{}, Conversation{}, nil},
 		{"list", "GET /agent/conversations", nil, ConversationPage{}, []string{"search", "include_archived", "before_id", "limit"}},
 		{"get", "GET /agent/conversations/{conversationID}", nil, Conversation{}, nil},
@@ -85,10 +99,13 @@ func conversationActions() []actioncontract.ActionDefinition {
 	out := []actioncontract.ActionDefinition{}
 	for _, d := range ConversationHTTPDefinitions() {
 		effect, idempotency, audit := actioncontract.EffectWrite, "request_contract", "mutation_audit_required"
-		if strings.HasPrefix(d.Pattern, "GET ") || d.Operation == "result_read" {
+		if strings.HasPrefix(d.Pattern, "GET ") || d.Operation == "result_read" || d.Operation == "agents_match" {
 			effect, idempotency, audit = actioncontract.EffectRead, "not_applicable", "owner_read_audit_policy"
 		}
 		capability, label := AgentCapabilityConversation, "Persistent personal conversations"
+		if strings.HasPrefix(d.Operation, "agents_") || strings.HasPrefix(d.Operation, "delegations_") {
+			capability, label = AgentCapabilityCollaboration, "Peer Agent collaboration"
+		}
 		if strings.HasPrefix(d.Operation, "todos_") {
 			capability, label = AgentCapabilityPersonalTodos, "Personal todos"
 		}
@@ -189,6 +206,15 @@ func ConversationOpenAPIOperations() map[string]map[string]any {
 // Only authenticated service clients may supply this envelope. The server
 // binds its runtime identity to the API key's configured runtime scope.
 type ConversationRPCRequest struct {
+	DisagreementID     string                            `json:"disagreement_id,omitempty"`
+	AgreementBefore    int64                             `json:"agreement_before,omitempty"`
+	AgentMatch         ConversationAgentMatchRequest     `json:"agent_match,omitempty"`
+	AgentID            string                            `json:"agent_id,omitempty"`
+	AgentWrite         ConversationAgentWrite            `json:"agent_write,omitempty"`
+	DelegationID       string                            `json:"delegation_id,omitempty"`
+	DelegationCreate   ConversationDelegationCreate      `json:"delegation_create,omitempty"`
+	DelegationUpdate   ConversationDelegationUpdate      `json:"delegation_update,omitempty"`
+	AgentMessage       ConversationAgentMessageSend      `json:"agent_message,omitempty"`
 	ScheduledTask      ScheduledConversationTaskRequest  `json:"scheduled_task,omitempty"`
 	ResultRead         ConversationResultRead            `json:"result_read,omitempty"`
 	DocumentID         string                            `json:"document_id,omitempty"`

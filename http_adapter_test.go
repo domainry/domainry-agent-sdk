@@ -13,7 +13,7 @@ func TestAgentHTTPAdapterContractOwnsCompleteRouteCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(actions) != 81+len(ConversationToolActions()) {
+	if len(actions) != 104+len(ConversationToolActions()) {
 		t.Fatalf("Agent Action count=%d", len(actions))
 	}
 	roleActions, nonHTTPActions := 0, 0
@@ -30,7 +30,7 @@ func TestAgentHTTPAdapterContractOwnsCompleteRouteCatalog(t *testing.T) {
 		if action.HTTP == nil {
 			nonHTTPActions++
 			strategy := actioncontract.AuthorizationSigned
-			if strings.HasPrefix(action.Key, ConversationToolActionPrefix) {
+			if strings.HasPrefix(action.Key, ConversationToolActionPrefix) || strings.HasPrefix(action.Key, ConversationCollaborationPermissionPrefix) {
 				strategy = actioncontract.AuthorizationAuthenticated
 			}
 			if len(action.NonHTTP) != 1 || action.Authorization.Strategy != strategy {
@@ -42,7 +42,7 @@ func TestAgentHTTPAdapterContractOwnsCompleteRouteCatalog(t *testing.T) {
 			t.Fatalf("Agent Action %q operation=%q", action.Key, action.OperationKey)
 		}
 	}
-	if roleActions != 31+len(ConversationToolActions()) || nonHTTPActions != 3+len(ConversationToolActions()) {
+	if roleActions != 41+len(ConversationToolActions()) || nonHTTPActions != 13+len(ConversationToolActions()) {
 		t.Fatalf("Agent role Actions=%d non-HTTP Actions=%d", roleActions, nonHTTPActions)
 	}
 
@@ -50,7 +50,7 @@ func TestAgentHTTPAdapterContractOwnsCompleteRouteCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if contract.ContractVersion != AgentHTTPAdapterContractVersion || contract.Owner != "agent" || len(contract.Routes) != 78 || len(contract.OpenAPI) != 78 {
+	if contract.ContractVersion != AgentHTTPAdapterContractVersion || contract.Owner != "agent" || len(contract.Routes) != 91 || len(contract.OpenAPI) != 91 {
 		t.Fatalf("Agent HTTP contract=%s owner=%s routes=%d operations=%d", contract.ContractVersion, contract.Owner, len(contract.Routes), len(contract.OpenAPI))
 	}
 	seen := map[string]bool{}

@@ -105,6 +105,7 @@ func AgentAuthorizationActions() ([]actioncontract.ActionDefinition, error) {
 	}
 	definitions = append(definitions, conversationActions()...)
 	definitions = append(definitions, ConversationToolActions()...)
+	definitions = append(definitions, ConversationCollaborationActions()...)
 	result := make([]actioncontract.ActionDefinition, 0, len(definitions))
 	for _, definition := range definitions {
 		normalized, err := actioncontract.NormalizeDefinition(definition)

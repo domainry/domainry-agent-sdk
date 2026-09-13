@@ -17,7 +17,18 @@ type ConversationExecutionStep struct {
 	UpdatedAt time.Time                        `json:"updated_at"`
 }
 
+type ConversationToolInspection struct {
+	Token       string     `json:"token"`
+	ClientID    string     `json:"client_id"`
+	ExpiresAt   time.Time  `json:"expires_at"`
+	StartedAt   time.Time  `json:"started_at"`
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
+	ActorID     string     `json:"actor_id"`
+}
+
 type ConversationToolExecution struct {
+	ReusedFrom     *agentsdk.ConversationResultReference  `json:"reused_from,omitempty"`
+	Inspection     *ConversationToolInspection            `json:"inspection,omitempty"`
 	Step           int                                    `json:"step"`
 	Call           agentsdk.ConversationToolCall          `json:"call"`
 	Definition     agentsdk.ConversationToolDefinition    `json:"definition"`
@@ -45,4 +56,17 @@ type ConversationExecutionRepository interface {
 	ExecutionTools(context.Context, ConversationClaim, int) ([]ConversationToolExecution, error)
 	BeginExecutionTool(context.Context, ConversationClaim, int, string, agentsdk.ConversationToolAuthorization) (ConversationToolExecution, bool, error)
 	FinishExecutionTool(context.Context, ConversationClaim, int, string, agentsdk.ConversationToolResult) error
+}
+
+// Inspection retains the old run's terminal state. The token fences one exact
+// receipt query; it is not a worker lease and grants no invocation rights.
+type ConversationOutcomeInspection struct {
+	Request agentsdk.ConversationToolRequest
+	Record  ConversationToolExecution
+	Run     agentsdk.ConversationRun
+}
+type ConversationOutcomeInspectionRepository interface {
+	BeginConversationOutcomeInspection(context.Context, string, int64, agentsdk.ConversationOutcomeInspectionRequest, string, agentsdk.ConversationAuthority) (ConversationOutcomeInspection, error)
+	FinishConversationOutcomeInspection(context.Context, ConversationOutcomeInspection, agentsdk.ConversationToolResult, agentsdk.ConversationAuthority) error
+	VerifyConversationOutcomeInspection(context.Context, agentsdk.ConversationToolRequest) (bool, error)
 }

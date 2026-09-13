@@ -12,7 +12,14 @@ type ConversationSourceRepository interface {
 }
 
 type ConversationSourceSnapshot struct {
-	Run   agentsdk.ConversationRun
-	Input *agentsdk.ConversationModelRequest
-	Calls []ConversationToolExecution
+	StepSources []ConversationStepSources
+	Run         agentsdk.ConversationRun
+	Input       *agentsdk.ConversationModelRequest
+	Calls       []ConversationToolExecution
+	Peers       []agentsdk.ConversationAgentMessage
+}
+
+type ConversationStepSources struct {
+	Step    int
+	Sources []agentsdk.ConversationRunReference
 }
