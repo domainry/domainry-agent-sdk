@@ -58,11 +58,12 @@ type ConversationDeliveryVerification struct {
 
 // Each submitted delivery and subsequent verification/acceptance is immutable.
 type ConversationDeliveryRecord struct {
-	Revision     int64                            `json:"revision"`
-	Kind         string                           `json:"kind"` // deliver, review_delivery, accept_delivery
-	Delivery     ConversationDelegationDelivery   `json:"delivery"`
-	Verification ConversationDeliveryVerification `json:"verification"`
-	Reason       string                           `json:"reason"`
+	Publication  *ConversationDeliveryPublicationReceipt `json:"publication,omitempty"`
+	Revision     int64                                   `json:"revision"`
+	Kind         string                                  `json:"kind"` // deliver, review_delivery, accept_delivery
+	Delivery     ConversationDelegationDelivery          `json:"delivery"`
+	Verification ConversationDeliveryVerification        `json:"verification"`
+	Reason       string                                  `json:"reason"`
 }
 
 type ConversationDeliveryHistory struct {

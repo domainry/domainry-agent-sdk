@@ -174,6 +174,7 @@ type ConversationOutcomeInspectionRequest struct {
 }
 
 type ConversationDelegationUpdate struct {
+	Publication      *ConversationDeliveryPublication          `json:"publication,omitempty"`
 	Participants     *[]ConversationDelegationParticipantInput `json:"participants,omitempty"`
 	Disagreement     *ConversationDisagreementChange           `json:"disagreement,omitempty"`
 	Review           *ConversationDeliveryReview               `json:"review,omitempty"`
@@ -240,6 +241,7 @@ type ConversationAgentMessageSend struct {
 }
 
 type ConversationDelegationDetail struct {
+	Publication *ConversationDeliveryPublicationReceipt `json:"publication,omitempty"`
 	// set_participants returns a narrow write receipt. Read the delegation
 	// separately for its currently authorized agreement and execution content.
 	ParticipantsOnly bool                               `json:"participants_only,omitempty"`

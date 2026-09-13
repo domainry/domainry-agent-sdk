@@ -89,6 +89,12 @@ type ConversationCollaborationRepository interface {
 	SendConversationAgentMessage(context.Context, string, agentsdk.ConversationAgentMessageSend, string, agentsdk.ConversationAuthority) (agentsdk.ConversationAgentMessage, error)
 }
 
+// Private canonical-record lookup for explicit republishing. It does not
+// project history or authorize any source access on its own.
+type ConversationDeliveryPublicationRepository interface {
+	ConversationDeliveryPublicationRecord(context.Context, string, int64, agentsdk.ConversationAuthority) (agentsdk.ConversationDeliveryRecord, error)
+}
+
 // Discovery aggregates live load for owned or explicitly shared Agent
 // identities. History is a bounded sample belonging to the actual caller. No
 // tool contents or other owners' task identities cross this port.
