@@ -14,49 +14,52 @@ const CapabilityConversationStreamV1 = "conversation.stream.v1"
 type ConversationAuthority = toolsdk.Authority
 
 type Conversation struct {
-	DelegationID  string    `json:"delegation_id,omitempty"`
-	AgentID       string    `json:"agent_id,omitempty"`
-	ID            string    `json:"id"`
-	Title         string    `json:"title"`
-	RuntimeID     string    `json:"runtime_id"`
-	WorkspaceID   string    `json:"workspace_id"`
-	UserID        string    `json:"user_id"`
-	Archived      bool      `json:"archived"`
-	MemoryEnabled bool      `json:"memory_enabled"`
-	LastSeq       int64     `json:"last_seq"`
-	ActiveRunID   string    `json:"active_run_id,omitempty"`
-	SummaryID     string    `json:"summary_id,omitempty"`
-	Revision      int64     `json:"revision"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	Fork          *ConversationForkOrigin `json:"fork,omitempty"`
+	DelegationID  string                  `json:"delegation_id,omitempty"`
+	AgentID       string                  `json:"agent_id,omitempty"`
+	ID            string                  `json:"id"`
+	Title         string                  `json:"title"`
+	RuntimeID     string                  `json:"runtime_id"`
+	WorkspaceID   string                  `json:"workspace_id"`
+	UserID        string                  `json:"user_id"`
+	Archived      bool                    `json:"archived"`
+	MemoryEnabled bool                    `json:"memory_enabled"`
+	LastSeq       int64                   `json:"last_seq"`
+	ActiveRunID   string                  `json:"active_run_id,omitempty"`
+	SummaryID     string                  `json:"summary_id,omitempty"`
+	Revision      int64                   `json:"revision"`
+	CreatedAt     time.Time               `json:"created_at"`
+	UpdatedAt     time.Time               `json:"updated_at"`
 }
 
 type ConversationMessage struct {
-	PeerEvent        *ConversationPeerEvent `json:"peer_event,omitempty"`
-	Citations        []ConversationCitation `json:"citations,omitempty"`    // current, authorized read projection
-	AccessError      string                 `json:"access_error,omitempty"` // read projection; original content is retained internally
-	InteractionID    string                 `json:"interaction_id,omitempty"`
-	ID               string                 `json:"id"`
-	ConversationID   string                 `json:"conversation_id"`
-	RunID            string                 `json:"run_id"`
-	Seq              int64                  `json:"seq"`
-	Role             string                 `json:"role"`
-	Content          string                 `json:"content"`
-	BackgroundTaskID string                 `json:"background_task_id,omitempty"`
-	CreatedAt        time.Time              `json:"created_at"`
+	PeerEvent        *ConversationPeerEvent     `json:"peer_event,omitempty"`
+	Citations        []ConversationCitation     `json:"citations,omitempty"`    // current, authorized read projection
+	AccessError      string                     `json:"access_error,omitempty"` // read projection; original content is retained internally
+	InteractionID    string                     `json:"interaction_id,omitempty"`
+	ID               string                     `json:"id"`
+	ConversationID   string                     `json:"conversation_id"`
+	RunID            string                     `json:"run_id"`
+	Seq              int64                      `json:"seq"`
+	Role             string                     `json:"role"`
+	Content          string                     `json:"content"`
+	ContentBlocks    []ConversationContentBlock `json:"content_blocks,omitempty"`
+	BackgroundTaskID string                     `json:"background_task_id,omitempty"`
+	CreatedAt        time.Time                  `json:"created_at"`
 }
 
 type ConversationRun struct {
-	Agent              *ConversationAgentSnapshot `json:"agent,omitempty"`
-	AccessError        string                     `json:"access_error,omitempty"` // source data is withheld from this projection
-	ID                 string                     `json:"id"`
-	ConversationID     string                     `json:"conversation_id"`
-	ClientMessageID    string                     `json:"client_message_id"`
-	RequestHash        string                     `json:"-"`
-	Status             string                     `json:"status"` // queued, running, completed, failed, cancelled
-	UserSeq            int64                      `json:"user_seq"`
-	AssistantMessageID string                     `json:"assistant_message_id,omitempty"`
-	Attempt            int                        `json:"attempt"`
+	Agent              *ConversationAgentSnapshot     `json:"agent,omitempty"`
+	Lifecycle          *ConversationLifecycleManifest `json:"lifecycle,omitempty"`
+	AccessError        string                         `json:"access_error,omitempty"` // source data is withheld from this projection
+	ID                 string                         `json:"id"`
+	ConversationID     string                         `json:"conversation_id"`
+	ClientMessageID    string                         `json:"client_message_id"`
+	RequestHash        string                         `json:"-"`
+	Status             string                         `json:"status"` // queued, running, completed, failed, cancelled
+	UserSeq            int64                          `json:"user_seq"`
+	AssistantMessageID string                         `json:"assistant_message_id,omitempty"`
+	Attempt            int                            `json:"attempt"`
 	// Draft belongs to Attempt and is never included in conversation history.
 	DraftText      string                     `json:"draft_text,omitempty"`
 	DraftBytes     int                        `json:"draft_bytes"`
@@ -68,6 +71,10 @@ type ConversationRun struct {
 	BackgroundTask *ConversationTaskExecution `json:"background_task,omitempty"`
 	Model          string                     `json:"model,omitempty"`
 	Usage          map[string]any             `json:"usage,omitempty"`
+	ModelAttempts  []ConversationModelAttempt `json:"model_attempts,omitempty"`
+	// Context is the safe projection of the initial frozen model input. Tool
+	// execution steps expose their refreshed projections independently.
+	Context *ConversationContextView `json:"context,omitempty"`
 	// CorrelationID is the stable Agent run identity passed to every tool owner.
 	// Audit is a bounded, safe projection of execution facts; it never contains
 	// model text, tool arguments/results, credentials, or authorization evidence.
@@ -85,12 +92,23 @@ type ConversationRun struct {
 }
 
 type ConversationRunMetrics struct {
-	Steps                 int `json:"steps"`
-	ModelCalls            int `json:"model_calls"`
-	ToolCalls             int `json:"tool_calls"`
-	ToolAttempts          int `json:"tool_attempts"`
-	AuthorizationChecks   int `json:"authorization_checks"`
-	ConfirmationDecisions int `json:"confirmation_decisions"`
+	Steps                    int   `json:"steps"`
+	ModelCalls               int   `json:"model_calls"`
+	ModelRetries             int   `json:"model_retries"`
+	ToolCalls                int   `json:"tool_calls"`
+	ToolAttempts             int   `json:"tool_attempts"`
+	ParallelToolBatches      int   `json:"parallel_tool_batches"`
+	ParallelToolCalls        int   `json:"parallel_tool_calls"`
+	PeakParallelTools        int   `json:"peak_parallel_tools"`
+	AuthorizationChecks      int   `json:"authorization_checks"`
+	ConfirmationDecisions    int   `json:"confirmation_decisions"`
+	ContextCompactions       int   `json:"context_compactions"`
+	CompactedResults         int   `json:"compacted_results"`
+	CompactedIntervals       int   `json:"compacted_intervals"`
+	PeakContextBytes         int   `json:"peak_context_bytes"`
+	ContextLimitBytes        int   `json:"context_limit_bytes"`
+	CacheReadInputTokens     int64 `json:"cache_read_input_tokens"`
+	CacheCreationInputTokens int64 `json:"cache_creation_input_tokens"`
 }
 
 // ConversationExecutionLimits are deployment-owned admission limits. Agent
@@ -113,20 +131,38 @@ type ConversationExecutionCapacity struct {
 }
 
 type ConversationRunAuditEvent struct {
-	Seq                   int64     `json:"seq"`
-	Type                  string    `json:"type"` // run, model, tool, authorization, confirmation
-	Status                string    `json:"status"`
-	Step                  int       `json:"step"`
-	Attempt               int       `json:"attempt,omitempty"`
-	CallID                string    `json:"call_id,omitempty"`
-	Tool                  string    `json:"tool,omitempty"`
-	ActionKey             string    `json:"action_key,omitempty"`
-	AuthorizationRevision string    `json:"authorization_revision,omitempty"`
-	InteractionID         string    `json:"interaction_id,omitempty"`
-	ActorID               string    `json:"actor_id,omitempty"`
-	ErrorCode             string    `json:"error_code,omitempty"`
-	DurationMilliseconds  int64     `json:"duration_ms,omitempty"`
-	OccurredAt            time.Time `json:"occurred_at"`
+	Seq                    int64     `json:"seq"`
+	Type                   string    `json:"type"` // run, model, tool, authorization, confirmation
+	Status                 string    `json:"status"`
+	Step                   int       `json:"step"`
+	Attempt                int       `json:"attempt,omitempty"`
+	ModelAttempt           int       `json:"model_attempt,omitempty"`
+	RetryDelayMilliseconds int64     `json:"retry_delay_ms,omitempty"`
+	CallID                 string    `json:"call_id,omitempty"`
+	Tool                   string    `json:"tool,omitempty"`
+	ActionKey              string    `json:"action_key,omitempty"`
+	AuthorizationRevision  string    `json:"authorization_revision,omitempty"`
+	InteractionID          string    `json:"interaction_id,omitempty"`
+	ActorID                string    `json:"actor_id,omitempty"`
+	ErrorCode              string    `json:"error_code,omitempty"`
+	DurationMilliseconds   int64     `json:"duration_ms,omitempty"`
+	OccurredAt             time.Time `json:"occurred_at"`
+}
+
+// ConversationModelAttempt is a safe, durable request-attempt projection.
+// Step is -1 for a text-only reply, -2 or lower for one compaction request,
+// and non-negative for an execution step.
+type ConversationModelAttempt struct {
+	Step                   int            `json:"step"`
+	RunAttempt             int            `json:"run_attempt"`
+	Number                 int            `json:"number"`
+	Status                 string         `json:"status"` // started, retry_scheduled, failed, completed
+	ErrorCode              string         `json:"error_code,omitempty"`
+	RetryAt                *time.Time     `json:"retry_at,omitempty"`
+	RetryDelayMilliseconds int64          `json:"retry_delay_ms,omitempty"`
+	Usage                  map[string]any `json:"usage,omitempty"`
+	StartedAt              time.Time      `json:"started_at"`
+	CompletedAt            *time.Time     `json:"completed_at,omitempty"`
 }
 
 func (r ConversationRun) Terminal() bool {
@@ -168,16 +204,61 @@ type ConversationSummaryContent struct {
 	OpenItems   []string `json:"open_items"`
 }
 
-// Memories are explicitly authored preferences, never automatically extracted
-// by a tool-free conversation model.
+const (
+	ConversationMemoryKindUserPreference = "user_preference"
+	ConversationMemoryKindProjectFact    = "project_fact"
+	ConversationMemoryKindTaskContext    = "task_context"
+
+	ConversationMemoryScopeWorkspace    = "workspace"
+	ConversationMemoryScopeConversation = "conversation"
+	ConversationMemoryScopeTask         = "task"
+)
+
+// ConversationMemoryScope controls where a saved memory may be recalled.
+// Workspace scope is still bounded by the authenticated runtime/workspace/user
+// owner key. Conversation and task scopes must identify an owned resource.
+type ConversationMemoryScope struct {
+	Kind           string `json:"kind"`
+	ConversationID string `json:"conversation_id,omitempty"`
+	TaskID         string `json:"task_id,omitempty"`
+}
+
+// ConversationMemorySource records why the user chose to save or correct a
+// memory. References are validated by the application before persistence.
+type ConversationMemorySource struct {
+	Kind            string    `json:"kind"` // manual, user_request, user_correction, task_feedback
+	ConversationID  string    `json:"conversation_id,omitempty"`
+	MessageID       string    `json:"message_id,omitempty"`
+	RunID           string    `json:"run_id,omitempty"`
+	TaskID          string    `json:"task_id,omitempty"`
+	ArtifactID      string    `json:"artifact_id,omitempty"`
+	ArtifactVersion int64     `json:"artifact_version,omitempty"`
+	FeedbackID      string    `json:"feedback_id,omitempty"`
+	CapturedAt      time.Time `json:"captured_at"`
+}
+
+type ConversationMemoryCorrection struct {
+	PreviousRevision int64  `json:"previous_revision"`
+	Reason           string `json:"reason"`
+}
+
+// Memories are explicitly authored records, never automatically extracted by
+// a tool-free conversation model. AppliesTo is user-authored relevance data;
+// an empty list means the declared scope applies without an additional topic.
 type ConversationMemory struct {
-	ID        string    `json:"id"`
-	Title     string    `json:"title"`
-	Content   string    `json:"content"`
-	Enabled   bool      `json:"enabled"`
-	Revision  int64     `json:"revision"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID          string                        `json:"id"`
+	Kind        string                        `json:"kind"`
+	Title       string                        `json:"title"`
+	Content     string                        `json:"content"`
+	Enabled     bool                          `json:"enabled"`
+	Scope       ConversationMemoryScope       `json:"scope"`
+	AppliesTo   []string                      `json:"applies_to"`
+	Source      *ConversationMemorySource     `json:"source,omitempty"`
+	Correction  *ConversationMemoryCorrection `json:"correction,omitempty"`
+	Uncertainty string                        `json:"uncertainty,omitempty"`
+	Revision    int64                         `json:"revision"`
+	CreatedAt   time.Time                     `json:"created_at"`
+	UpdatedAt   time.Time                     `json:"updated_at"`
 }
 
 type ConversationCreate struct {
@@ -194,10 +275,16 @@ type ConversationUpdate struct {
 }
 type ConversationSend struct {
 	// ExecutionAgent is prepared by the application, never accepted from JSON.
-	ExecutionAgent  *ConversationAgentSnapshot `json:"-"`
-	ClientMessageID string                     `json:"client_message_id"`
-	Message         string                     `json:"message"`
-	WriteScope      *ConversationWriteScope    `json:"write_scope,omitempty"`
+	ExecutionAgent *ConversationAgentSnapshot `json:"-"`
+	// ExecutionLifecycle is prepared by the application, never accepted from JSON.
+	ExecutionLifecycle *ConversationLifecycleManifest `json:"-"`
+	ClientMessageID    string                         `json:"client_message_id"`
+	Message            string                         `json:"message"`
+	// Content is an additive input contract. Omit it for the legacy Message
+	// form. Image inputs contain only attachment_id and optional detail; the
+	// Agent resolves and freezes every other image field.
+	Content    []ConversationContentBlock `json:"content,omitempty"`
+	WriteScope *ConversationWriteScope    `json:"write_scope,omitempty"`
 }
 
 // A scope is explicitly submitted by the authenticated user and frozen on one
@@ -224,7 +311,7 @@ func (s *ConversationWriteScope) Allows(tool string) bool {
 		return s.PersonalTodos
 	case "artifact_create", "artifact_edit", "artifact_export":
 		return s.PersonalArtifacts
-	case "task_start", "task_cancel", "task_resume":
+	case "task_start", "task_cancel", "task_resume", "task_update", "task_review", "plan_update", "completion_submit":
 		return s.BackgroundTasks
 	default:
 		return false
@@ -257,11 +344,17 @@ type ConversationEventPage struct {
 	Terminal bool                `json:"terminal"`
 }
 type ConversationMemoryWrite struct {
-	ID               string `json:"id,omitempty"`
-	Title            string `json:"title"`
-	Content          string `json:"content"`
-	Enabled          bool   `json:"enabled"`
-	ExpectedRevision int64  `json:"expected_revision"`
+	ID               string                    `json:"id,omitempty"`
+	Kind             string                    `json:"kind,omitempty"`
+	Title            string                    `json:"title"`
+	Content          string                    `json:"content"`
+	Enabled          bool                      `json:"enabled"`
+	Scope            ConversationMemoryScope   `json:"scope,omitempty"`
+	AppliesTo        []string                  `json:"applies_to,omitempty"`
+	Source           *ConversationMemorySource `json:"source,omitempty"`
+	Uncertainty      string                    `json:"uncertainty,omitempty"`
+	CorrectionReason string                    `json:"correction_reason,omitempty"`
+	ExpectedRevision int64                     `json:"expected_revision"`
 }
 
 type ConversationService interface {
@@ -285,15 +378,24 @@ type ConversationService interface {
 type ConversationBinding interface{ Conversations() ConversationService }
 
 type ConversationModelMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
+	Role          string                     `json:"role"`
+	Content       string                     `json:"content"`
+	ContentBlocks []ConversationContentBlock `json:"content_blocks,omitempty"`
+	// Server-only assembly key. Context manifests preserve it across recovery;
+	// provider adapters never receive it.
+	ContextSourceKey string `json:"-"`
 }
 type ConversationModelRequest struct {
-	Sources        *ConversationSources       `json:"sources,omitempty"` // server-only; providers receive Messages
-	Messages       []ConversationModelMessage `json:"messages"`
-	Purpose        string                     `json:"purpose"` // reply or summary; neither permits tools
-	IdempotencyKey string                     `json:"idempotency_key"`
-	MaxOutputBytes int                        `json:"max_output_bytes"`
+	Sources           *ConversationSources          `json:"sources,omitempty"` // server-only; providers receive Messages
+	Context           *ConversationContextManifest  `json:"context,omitempty"`
+	ContextWindow     *ConversationContextWindow    `json:"context_window,omitempty"`
+	Messages          []ConversationModelMessage    `json:"messages"`
+	ModelIdentity     ConversationModelIdentity     `json:"model_identity,omitempty"`
+	ModelCapabilities ConversationModelCapabilities `json:"model_capabilities,omitzero"`
+	ReasoningEffort   string                        `json:"reasoning_effort,omitempty"`
+	Purpose           string                        `json:"purpose"` // reply or summary; neither permits tools
+	IdempotencyKey    string                        `json:"idempotency_key"`
+	MaxOutputBytes    int                           `json:"max_output_bytes"`
 }
 type ConversationModelResult struct {
 	Content string         `json:"content"`

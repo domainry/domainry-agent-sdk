@@ -20,6 +20,13 @@ type ScheduledConversationTaskMutationRepository interface {
 	AcceptScheduledConversationTask(context.Context, agentsdk.ScheduledConversationTaskRequest, agentsdk.ConversationTask) (agentsdk.ScheduledConversationTaskReceipt, error)
 }
 
+// BusinessEventConversationTaskMutationRepository atomically deduplicates one
+// verified Integration event and inserts its Agent-owned task into the normal
+// worker queue. A replay with changed content must fail closed.
+type BusinessEventConversationTaskMutationRepository interface {
+	AcceptBusinessEventConversationTask(context.Context, agentsdk.BusinessEventConversationTaskRequest, agentsdk.ConversationTask) (agentsdk.BusinessEventConversationTaskReceipt, error)
+}
+
 // ConversationTaskWorkerRepository is an Agent-owned queue boundary. Launch
 // creates a normal conversation run so the existing worker, lease, execution
 // ledger and current authorization checks remain the only execution path.
@@ -55,6 +62,41 @@ type ConversationTaskReadRepository interface {
 type ConversationTaskControlRepository interface {
 	CancelQueuedConversationTask(context.Context, string, agentsdk.ConversationAuthority) (agentsdk.ConversationTask, error)
 	ResumeQueuedConversationTask(context.Context, string, agentsdk.ConversationAuthority) (agentsdk.ConversationTask, error)
+}
+
+type ConversationTaskAgreementRepository interface {
+	UpdateConversationTaskAgreement(context.Context, string, agentsdk.ConversationTaskAgreementUpdate, agentsdk.ConversationAuthority) (agentsdk.ConversationTask, bool, error)
+}
+
+type ConversationExternalAgentTaskRecord struct {
+	Task       agentsdk.ConversationTask
+	Delegation agentsdk.ConversationDelegation
+	Replay     bool
+}
+
+// ConversationExternalAgentRepository owns durable peer claims, ordered
+// reports, message acknowledgements, and task/delegation state transitions.
+type ConversationExternalAgentRepository interface {
+	ConversationExternalAgentTasks(context.Context, string, int, agentsdk.ConversationAuthority) ([]agentsdk.ConversationTask, bool, error)
+	ClaimConversationExternalAgentTask(context.Context, string, agentsdk.ConversationExternalAgentClaim, agentsdk.ConversationAuthority) (ConversationExternalAgentTaskRecord, error)
+	ReportConversationExternalAgentTask(context.Context, string, agentsdk.ConversationExternalAgentReport, agentsdk.ConversationAuthority) (ConversationExternalAgentTaskRecord, error)
+}
+
+// ConversationTaskPlanRepository atomically commits one model-authored plan
+// version with its tool receipt. Plan bodies contain references only; artifact
+// content remains in Knowledge and business results remain in their ledgers.
+type ConversationTaskPlanRepository interface {
+	ApplyConversationTaskPlanTool(context.Context, agentsdk.ConversationToolRequest, agentsdk.ConversationPlan) (agentsdk.ConversationToolResult, error)
+	ConversationTaskPlan(context.Context, string, int64, agentsdk.ConversationAuthority) (agentsdk.ConversationPlan, error)
+	ConversationTaskPlans(context.Context, string, int64, agentsdk.ConversationAuthority) (agentsdk.ConversationPlanHistory, error)
+}
+
+// ConversationTaskCompletionRepository commits executing-Agent assessments,
+// user reviews and immutable history against the current task agreement.
+type ConversationTaskCompletionRepository interface {
+	ApplyConversationTaskCompletionTool(context.Context, agentsdk.ConversationToolRequest, agentsdk.ConversationTaskCompletionRecord) (agentsdk.ConversationToolResult, error)
+	ReviewConversationTaskCompletion(context.Context, string, agentsdk.ConversationTaskCompletionReviewRequest, agentsdk.ConversationAuthority) (agentsdk.ConversationTask, bool, error)
+	ConversationTaskCompletionHistory(context.Context, string, int64, agentsdk.ConversationAuthority) (agentsdk.ConversationTaskCompletionHistory, error)
 }
 
 type ConversationTaskRecordPage struct {

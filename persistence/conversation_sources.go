@@ -21,15 +21,27 @@ type ConversationSourceAuthorityRepository interface {
 type ConversationSourceSnapshot struct {
 	// Immutable execution provenance for ledger routing. Current data and
 	// operation authorization always retain the actual reader's authority.
-	Authority   agentsdk.ConversationAuthority `json:"-"`
-	StepSources []ConversationStepSources
-	Run         agentsdk.ConversationRun
-	Input       *agentsdk.ConversationModelRequest
-	Calls       []ConversationToolExecution
-	Peers       []agentsdk.ConversationAgentMessage
+	Authority    agentsdk.ConversationAuthority `json:"-"`
+	StepSources  []ConversationStepSources
+	StepContexts []ConversationStepContext
+	Run          agentsdk.ConversationRun
+	Input        *agentsdk.ConversationModelRequest
+	Steps        []ConversationExecutionStep
+	Calls        []ConversationToolExecution
+	Peers        []agentsdk.ConversationAgentMessage
+	FinalMessage *agentsdk.ConversationMessage
 }
 
 type ConversationStepSources struct {
 	Step    int
 	Sources []agentsdk.ConversationRunReference
+}
+
+// ConversationStepContext is server-only frozen context needed to recheck a
+// registered source before a derived historical reply or execution is read.
+// Public source projections never expose Messages or manifest hashes.
+type ConversationStepContext struct {
+	Step     int
+	Context  *agentsdk.ConversationContextManifest
+	Messages []agentsdk.ConversationStepMessage
 }

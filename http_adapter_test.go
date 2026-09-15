@@ -13,12 +13,12 @@ func TestAgentHTTPAdapterContractOwnsCompleteRouteCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(actions) != 107+len(ConversationToolActions()) {
+	if len(actions) != 138+len(ConversationToolActions()) {
 		t.Fatalf("Agent Action count=%d", len(actions))
 	}
 	roleActions, nonHTTPActions := 0, 0
 	for _, action := range actions {
-		if (action.Key == ConversationActionPrefix+"result_read" || action.Key == ConversationActionPrefix+"delegations_result" || action.Key == ConversationActionPrefix+"delegations_artifact" || action.Key == ConversationActionPrefix+"delegations_export") && action.EffectClass != actioncontract.EffectRead {
+		if (action.Key == ConversationActionPrefix+"external_agent_assignments" || action.Key == ConversationActionPrefix+"result_read" || action.Key == ConversationActionPrefix+"trajectory_compare" || action.Key == ConversationActionPrefix+"delegations_result" || action.Key == ConversationActionPrefix+"delegations_publication" || action.Key == ConversationActionPrefix+"delegations_publications" || action.Key == ConversationActionPrefix+"delegations_contract_publication" || action.Key == ConversationActionPrefix+"delegations_contract_candidates" || action.Key == ConversationActionPrefix+"delegations_contract_publications" || action.Key == ConversationActionPrefix+"delegations_artifact" || action.Key == ConversationActionPrefix+"delegations_export") && action.EffectClass != actioncontract.EffectRead {
 			t.Fatal("stored-result read was classified as a mutation")
 		}
 		if action.Permission != nil {
@@ -43,20 +43,28 @@ func TestAgentHTTPAdapterContractOwnsCompleteRouteCatalog(t *testing.T) {
 		}
 	}
 	if roleActions != 41+len(ConversationToolActions()) || nonHTTPActions != 13+len(ConversationToolActions()) {
-		t.Fatalf("Agent role Actions=%d non-HTTP Actions=%d", roleActions, nonHTTPActions)
+		t.Fatalf("Agent role Actions=%d non-HTTP Actions=%d tool Actions=%d", roleActions, nonHTTPActions, len(ConversationToolActions()))
 	}
 
 	contract, err := CompileAgentHTTPAdapterContract()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if contract.ContractVersion != AgentHTTPAdapterContractVersion || contract.Owner != "agent" || len(contract.Routes) != 94 || len(contract.OpenAPI) != 94 {
+	if contract.ContractVersion != AgentHTTPAdapterContractVersion || contract.Owner != "agent" || len(contract.Routes) != 125 || len(contract.OpenAPI) != 125 {
 		t.Fatalf("Agent HTTP contract=%s owner=%s routes=%d operations=%d", contract.ContractVersion, contract.Owner, len(contract.Routes), len(contract.OpenAPI))
 	}
 	seen := map[string]bool{}
 	response := contract.OpenAPI["POST /agent/delegations/{delegationID}/delivery-export"]["responses"].(map[string]any)["200"].(map[string]any)["content"].(map[string]any)
 	if response["text/markdown"] == nil || response["text/csv"] == nil || response["application/json"] != nil {
 		t.Fatal("released export OpenAPI disagrees with binary HTTP response")
+	}
+	trajectoryExport := contract.OpenAPI["GET /agent/conversations/{conversationID}/runs/{runID}/trajectory/export"]["responses"].(map[string]any)["200"].(map[string]any)["content"].(map[string]any)
+	trajectoryJSON := trajectoryExport["application/json"].(map[string]any)["schema"].(map[string]any)
+	if trajectoryJSON["type"] != "string" || trajectoryJSON["format"] != "binary" {
+		t.Fatalf("trajectory export OpenAPI=%#v", trajectoryExport)
+	}
+	if contract.OpenAPI["POST /agent/conversations/{conversationID}/runs/{runID}/forks"] == nil {
+		t.Fatal("conversation fork route missing")
 	}
 	for _, route := range contract.Routes {
 		pattern := route.Pattern()

@@ -101,6 +101,80 @@ catalog and permission manifest for implemented read tools. Registering an
 Action does not grant it to a user. These additions do not add mandatory methods
 to existing `Binding`, `ConversationModel` or `ConversationRepository` ports.
 
+`ConversationTrajectoryService` is an optional completed-run inspection and
+forking extension. It projects the exact saved model-visible messages, complete
+public tool definitions, recorded model responses, tool calls/results, context
+boundary metadata and per-item hashes after rechecking the current reader and
+every reusable source. Provider continuation state, credentials, confirmation
+material and authorization evidence stay server-only. `display` reads the
+projection, `model_fixture` returns recorded responses/tools without invoking a
+provider, and `live_rerun` creates an independent conversation that has no active
+run until a user sends new input. `Conversation.Fork` is provenance only; it
+does not make one Agent subordinate to another or grant access to the source.
+Fork context converts recorded tool calls and tool results into inert historical
+data, so creating or continuing a fork never replays an old effect automatically.
+The private `persistence.ConversationForkRepository` seed is verified against the
+source run's exact completed event boundary and trajectory digest on every use.
+
+`ConversationLifecycleExtension` is the public, startup-only execution
+lifecycle port. Extensions declare a stable key, implementation version,
+deployment configuration version, ascending order, policy/observer kind,
+failure mode and exact stage subscription. The stages cover input admission and
+accepted input,
+context assembly and safe compaction, model request/completion/failure/retry,
+tool execution before/after, run completion and task completion. The ordered
+definition manifest is frozen on foreground, background and delegated runs;
+recovery rejects a changed manifest instead of applying new behavior to old
+input. `modulehost.ConversationLifecycleHost` contributes extensions during
+the existing host assembly phase. Runtime installation or removal is not part
+of this version.
+
+Policy decisions are deliberately narrow. A context policy may append bounded
+trusted planning instructions without reordering source messages; a compaction
+policy may lower the engine context ceiling; a retry policy may reduce attempts,
+disable retry or increase bounded backoff. No decision grants an Identity
+action, changes an Agent/model/tool snapshot, skips current authorization or
+confirmation, rewrites arguments/results, or marks an effect successful.
+Observers cannot return decisions and always continue on error. Fail-closed
+policies are allowed only before an effect; model/tool completion and terminal
+events must continue so a callback cannot invalidate a committed result or
+receipt. Events contain deterministic IDs and owned request/result copies so
+handlers can deduplicate delivery and cannot mutate engine state by retaining
+references. Handler errors and panics are sanitized before they reach a run.
+
+`ConversationStepInputSizer` optionally measures the exact serialized provider
+request with the same encoder used for streaming, without network calls or
+effects. Agent uses this measurement for context admission and resume checks.
+Source proofs, authorization fields and other omitted metadata remain in the
+complete frozen execution snapshot. Models without this port retain conservative
+snapshot sizing; invalid measurements and encoder errors stop execution.
+
+`ConversationContextSource` is a startup-registered, read-only context boundary
+for project instructions, current business records, file references and other
+host data. Its definition fixes scope, trust, refresh interval, assembly order
+and byte budget. `ReadConversationContext` authorizes and returns one versioned
+value; `AuthorizeConversationContext` rechecks that exact frozen version before
+every model request and historical reuse. Stable prefixes are limited to
+run-frozen project instructions. Dynamic values remain outside that prefix,
+and source versions, pressure, compaction and provider-reported cache usage are
+available through bounded run diagnostics without exposing source content or
+authorization hashes.
+
+`delegation_source_read` version 2 optionally accepts `dependency_id` for an
+exact frozen upstream dependency of the current delegation. Original agreement
+requirements determine its admitted source prefixes; every page rechecks the
+upstream audience, original publisher/provider and current reader's data rights.
+This grants no upstream execution or conversation control. Pages preserve the
+upstream ID and original reference; the tool response's top-level recorded
+reading reference can prove completion. Version 1 definitions remain available
+for validating saved original pages, while new invocations use version 2.
+
+The optional `persistence.ConversationAgentAncestryRepository` returns only
+agent IDs along the current owner's original delegation source chain for
+matching and cycle exclusion. Implementations may follow original subjects
+internally; this port never grants private upstream conversation or result
+access. Existing hosts can retain their conservative ancestry traversal.
+
 `ConversationToolAvailability` optionally supplies live connection state and
 tool switches. Agent filters the authorized host catalog through this policy
 before freezing each model step, checks it again after concrete authorization,

@@ -60,10 +60,30 @@ type ConversationDeliveryVerification struct {
 type ConversationDeliveryRecord struct {
 	Publication  *ConversationDeliveryPublicationReceipt `json:"publication,omitempty"`
 	Revision     int64                                   `json:"revision"`
-	Kind         string                                  `json:"kind"` // deliver, review_delivery, accept_delivery
+	Kind         string                                  `json:"kind"` // deliver, review_delivery, accept_delivery, legacy, republish_delivery
 	Delivery     ConversationDelegationDelivery          `json:"delivery"`
 	Verification ConversationDeliveryVerification        `json:"verification"`
 	Reason       string                                  `json:"reason"`
+}
+
+// SourceReferences identifies only submitted evidence and recorded assessment
+// provenance. Publishing these roots still requires current source authority.
+func (r ConversationDeliveryRecord) SourceReferences() []ConversationRunReference {
+	refs := append([]ConversationRunReference{}, r.Delivery.Evidence...)
+	for _, condition := range r.Delivery.Conditions {
+		for _, ref := range condition.Receipts {
+			refs = append(refs, ConversationRunReference{ConversationID: ref.ConversationID, RunID: ref.RunID, BeforeStep: ref.Step + 2})
+		}
+	}
+	for _, check := range r.Verification.Checks {
+		for _, ref := range check.Receipts {
+			refs = append(refs, ConversationRunReference{ConversationID: ref.ConversationID, RunID: ref.RunID, BeforeStep: ref.Step + 2})
+		}
+	}
+	if r.Verification.Source != nil {
+		refs = append(refs, *r.Verification.Source)
+	}
+	return refs
 }
 
 type ConversationDeliveryHistory struct {

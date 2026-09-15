@@ -14,29 +14,32 @@ const CapabilityConversationCollaborationV1 = "conversation.collaboration.v1"
 // binds the identity used for delegated tasks; sharing alone never does so.
 // A delegation grants responsibility for one task, never ownership of an Agent.
 type ConversationAgent struct {
-	DelegationExecution string    `json:"delegation_execution,omitempty"`
-	DelegationRoleKey   string    `json:"delegation_role_key,omitempty"`
-	OwnerUserID         string    `json:"owner_user_id,omitempty"`
-	Shared              bool      `json:"shared,omitempty"`
-	SharedWithUserIDs   []string  `json:"shared_with_user_ids,omitempty"`
-	DefinitionKey       string    `json:"definition_key,omitempty"`
-	DefinitionVersion   string    `json:"definition_version,omitempty"`
-	DefinitionDigest    string    `json:"definition_digest,omitempty"`
-	ID                  string    `json:"id"`
-	Name                string    `json:"name"`
-	Description         string    `json:"description"`
-	Instructions        string    `json:"instructions"`
-	Tools               []string  `json:"tools"`
-	SkillKeys           []string  `json:"skill_keys"`
-	ModelKey            string    `json:"model_key"`
-	Enabled             bool      `json:"enabled"`
-	MaxConcurrent       int       `json:"max_concurrent"`
-	Revision            int64     `json:"revision"`
-	CreatedAt           time.Time `json:"created_at"`
-	UpdatedAt           time.Time `json:"updated_at"`
+	External            *ConversationExternalAgentConfig `json:"external,omitempty"`
+	DelegationExecution string                           `json:"delegation_execution,omitempty"`
+	DelegationRoleKey   string                           `json:"delegation_role_key,omitempty"`
+	OwnerUserID         string                           `json:"owner_user_id,omitempty"`
+	Shared              bool                             `json:"shared,omitempty"`
+	SharedWithUserIDs   []string                         `json:"shared_with_user_ids,omitempty"`
+	DefinitionKey       string                           `json:"definition_key,omitempty"`
+	DefinitionVersion   string                           `json:"definition_version,omitempty"`
+	DefinitionDigest    string                           `json:"definition_digest,omitempty"`
+	ID                  string                           `json:"id"`
+	Name                string                           `json:"name"`
+	Description         string                           `json:"description"`
+	Instructions        string                           `json:"instructions"`
+	Tools               []string                         `json:"tools"`
+	SkillKeys           []string                         `json:"skill_keys"`
+	ModelKey            string                           `json:"model_key"`
+	ReasoningEffort     string                           `json:"reasoning_effort,omitempty"`
+	Enabled             bool                             `json:"enabled"`
+	MaxConcurrent       int                              `json:"max_concurrent"`
+	Revision            int64                            `json:"revision"`
+	CreatedAt           time.Time                        `json:"created_at"`
+	UpdatedAt           time.Time                        `json:"updated_at"`
 }
 
 type ConversationAgentWrite struct {
+	External *ConversationExternalAgentConfig `json:"external,omitempty"`
 	// Omitted preserves the binding; caller disables it, owner binds the
 	// authenticated writer's current role. A client cannot supply that role.
 	DelegationExecution *string `json:"delegation_execution,omitempty"`
@@ -53,6 +56,7 @@ type ConversationAgentWrite struct {
 	Tools             []string  `json:"tools"`
 	SkillKeys         []string  `json:"skill_keys"`
 	ModelKey          string    `json:"model_key"`
+	ReasoningEffort   string    `json:"reasoning_effort,omitempty"`
 	Enabled           bool      `json:"enabled"`
 	MaxConcurrent     int       `json:"max_concurrent"`
 }
@@ -64,6 +68,7 @@ type ConversationAgentPage struct {
 	Items        []ConversationAgent           `json:"items"`
 	Tools        []ConversationToolDefinition  `json:"tools"`
 	Models       []string                      `json:"models"`
+	ModelCatalog []ConversationModelDescriptor `json:"model_catalog"`
 	Complete     bool                          `json:"complete"`
 }
 
@@ -71,6 +76,7 @@ type ConversationAgentPage struct {
 // state are checked again on execution; changing configuration never silently
 // changes an already accepted run.
 type ConversationAgentSnapshot struct {
+	External *ConversationExternalAgentConfig `json:"external,omitempty"`
 	// Present only for a task admitted under an explicit owner execution binding.
 	DelegationRoleKey string                        `json:"delegation_role_key,omitempty"`
 	OwnerUserID       string                        `json:"owner_user_id,omitempty"`
@@ -78,22 +84,29 @@ type ConversationAgentSnapshot struct {
 	ID                string                        `json:"id"`
 	Revision          int64                         `json:"revision"`
 	ModelKey          string                        `json:"model_key"`
+	ReasoningEffort   string                        `json:"reasoning_effort,omitempty"`
 	ModelIdentity     ConversationModelIdentity     `json:"model_identity"`
+	ModelCapabilities ConversationModelCapabilities `json:"model_capabilities"`
 	Profile           AgentSchema                   `json:"profile"`
 	Skills            []SkillSchema                 `json:"skills,omitempty"`
 	Digest            string                        `json:"digest"`
 }
 
 type ConversationTaskBrief struct {
-	VerificationRules    []ConversationCompletionRule `json:"verification_rules,omitempty"`
-	Version              int64                        `json:"version"`
-	Goal                 string                       `json:"goal"`
-	Deliverable          string                       `json:"deliverable"`
-	Audience             string                       `json:"audience"`
-	Constraints          []string                     `json:"constraints"`
-	CompletionConditions []string                     `json:"completion_conditions"`
-	Assumptions          []string                     `json:"assumptions"`
-	DueAt                *time.Time                   `json:"due_at,omitempty"`
+	VerificationRules []ConversationCompletionRule `json:"verification_rules,omitempty"`
+	// These lists distinguish direct user requirements from Agent-organized
+	// fields. Omission means provenance is unknown for a legacy agreement and
+	// never grants authority. Each populated field may appear in at most one.
+	ExplicitFields       []string   `json:"explicit_fields,omitempty"`
+	InferredFields       []string   `json:"inferred_fields,omitempty"`
+	Version              int64      `json:"version"`
+	Goal                 string     `json:"goal"`
+	Deliverable          string     `json:"deliverable"`
+	Audience             string     `json:"audience"`
+	Constraints          []string   `json:"constraints"`
+	CompletionConditions []string   `json:"completion_conditions"`
+	Assumptions          []string   `json:"assumptions"`
+	DueAt                *time.Time `json:"due_at,omitempty"`
 }
 
 type ConversationStructuredInput struct {
@@ -102,21 +115,24 @@ type ConversationStructuredInput struct {
 }
 
 type ConversationDelegationCreate struct {
-	StructuredInput *ConversationStructuredInput  `json:"structured_input,omitempty"`
-	Dependencies    []ConversationDependencyInput `json:"dependencies,omitempty"`
-	Requirements    ConversationAgentRequirements `json:"requirements,omitempty"`
-	ToolRequest     *ConversationToolRequest      `json:"-"`
-	ClientID        string                        `json:"client_id"`
-	ConversationID  string                        `json:"conversation_id"`
-	AgentID         string                        `json:"agent_id"`
-	Purpose         string                        `json:"purpose"`
-	Brief           ConversationTaskBrief         `json:"brief"`
-	Input           string                        `json:"input"`
-	Budget          ConversationTaskBudget        `json:"budget"`
-	OutputSchema    json.RawMessage               `json:"output_schema,omitempty"`
+	StructuredInput *ConversationStructuredInput       `json:"structured_input,omitempty"`
+	Dependencies    []ConversationDependencyInput      `json:"dependencies,omitempty"`
+	Requirements    ConversationAgentRequirements      `json:"requirements,omitempty"`
+	Model           *ConversationModelRequestSelection `json:"model,omitempty"`
+	WorkBudget      *ConversationWorkBudget            `json:"work_budget,omitempty"`
+	ToolRequest     *ConversationToolRequest           `json:"-"`
+	ClientID        string                             `json:"client_id"`
+	ConversationID  string                             `json:"conversation_id"`
+	AgentID         string                             `json:"agent_id"`
+	Purpose         string                             `json:"purpose"`
+	Brief           ConversationTaskBrief              `json:"brief"`
+	Input           string                             `json:"input"`
+	Budget          ConversationTaskBudget             `json:"budget"`
+	OutputSchema    json.RawMessage                    `json:"output_schema,omitempty"`
 }
 
 type ConversationDelegation struct {
+	SubjectExited            bool                                `json:"subject_exited,omitempty"`
 	OwnerUserID              string                              `json:"owner_user_id,omitempty"`
 	ParticipantsRevision     int64                               `json:"participants_revision,omitempty"`
 	Participants             []ConversationDelegationParticipant `json:"participants,omitempty"`
@@ -135,26 +151,33 @@ type ConversationDelegation struct {
 	AdoptedAt                *time.Time                          `json:"adopted_at,omitempty"`
 	BriefSource              *ConversationRunReference           `json:"brief_source,omitempty"`
 	Requirements             ConversationAgentRequirements       `json:"requirements,omitempty"`
+	WorkBudget               *ConversationWorkBudget             `json:"work_budget,omitempty"`
+	WorkUsage                *ConversationWorkUsage              `json:"work_usage,omitempty"`
 	RootConversationID       string                              `json:"root_conversation_id"`
 	SourceAgent              *ConversationAgentSnapshot          `json:"source_agent,omitempty"`
-	ID                       string                              `json:"id"`
-	FromAgentID              string                              `json:"from_agent_id"`
-	ToAgentID                string                              `json:"to_agent_id"`
-	SourceConversationID     string                              `json:"source_conversation_id"`
-	SourceRunID              string                              `json:"source_run_id,omitempty"`
-	ConversationID           string                              `json:"conversation_id"`
-	TaskID                   string                              `json:"task_id"`
-	Purpose                  string                              `json:"purpose"`
-	Brief                    ConversationTaskBrief               `json:"brief"`
-	Input                    string                              `json:"input"`
-	Budget                   ConversationTaskBudget              `json:"budget"`
-	OutputSchema             json.RawMessage                     `json:"output_schema,omitempty"`
-	Status                   string                              `json:"status"`
-	Revision                 int64                               `json:"revision"`
-	Delivery                 *ConversationDelegationDelivery     `json:"delivery,omitempty"`
-	Decision                 string                              `json:"decision,omitempty"`
-	CreatedAt                time.Time                           `json:"created_at"`
-	UpdatedAt                time.Time                           `json:"updated_at"`
+	Model                    *ConversationModelSelection         `json:"model,omitempty"`
+	// ModelExplicit records that the delegating task selected its model rather
+	// than inheriting the assigned Agent model. A transfer keeps only explicit
+	// task selections; inherited selections follow the replacement Agent.
+	ModelExplicit        bool                            `json:"model_explicit,omitempty"`
+	ID                   string                          `json:"id"`
+	FromAgentID          string                          `json:"from_agent_id"`
+	ToAgentID            string                          `json:"to_agent_id"`
+	SourceConversationID string                          `json:"source_conversation_id"`
+	SourceRunID          string                          `json:"source_run_id,omitempty"`
+	ConversationID       string                          `json:"conversation_id"`
+	TaskID               string                          `json:"task_id"`
+	Purpose              string                          `json:"purpose"`
+	Brief                ConversationTaskBrief           `json:"brief"`
+	Input                string                          `json:"input"`
+	Budget               ConversationTaskBudget          `json:"budget"`
+	OutputSchema         json.RawMessage                 `json:"output_schema,omitempty"`
+	Status               string                          `json:"status"`
+	Revision             int64                           `json:"revision"`
+	Delivery             *ConversationDelegationDelivery `json:"delivery,omitempty"`
+	Decision             string                          `json:"decision,omitempty"`
+	CreatedAt            time.Time                       `json:"created_at"`
+	UpdatedAt            time.Time                       `json:"updated_at"`
 }
 
 type ConversationDelegationDelivery struct {
@@ -174,21 +197,22 @@ type ConversationOutcomeInspectionRequest struct {
 }
 
 type ConversationDelegationUpdate struct {
-	Publication      *ConversationDeliveryPublication          `json:"publication,omitempty"`
-	Participants     *[]ConversationDelegationParticipantInput `json:"participants,omitempty"`
-	Disagreement     *ConversationDisagreementChange           `json:"disagreement,omitempty"`
-	Review           *ConversationDeliveryReview               `json:"review,omitempty"`
-	Transfer         *ConversationDelegationTransfer           `json:"transfer,omitempty"`
-	Inspection       *ConversationOutcomeInspectionRequest     `json:"inspection,omitempty"`
-	StructuredInput  *ConversationStructuredInput              `json:"structured_input,omitempty"`
-	Dependencies     *[]ConversationDependencyInput            `json:"dependencies,omitempty"`
-	ToolRequest      *ConversationToolRequest                  `json:"-"`
-	ClientID         string                                    `json:"client_id"`
-	ExpectedRevision int64                                     `json:"expected_revision"`
-	Action           string                                    `json:"action"`
-	Reason           string                                    `json:"reason"`
-	Brief            *ConversationTaskBrief                    `json:"brief,omitempty"`
-	Delivery         *ConversationDelegationDelivery           `json:"delivery,omitempty"`
+	ContractPublication *ConversationContractPublication          `json:"contract_publication,omitempty"`
+	Publication         *ConversationDeliveryPublication          `json:"publication,omitempty"`
+	Participants        *[]ConversationDelegationParticipantInput `json:"participants,omitempty"`
+	Disagreement        *ConversationDisagreementChange           `json:"disagreement,omitempty"`
+	Review              *ConversationDeliveryReview               `json:"review,omitempty"`
+	Transfer            *ConversationDelegationTransfer           `json:"transfer,omitempty"`
+	Inspection          *ConversationOutcomeInspectionRequest     `json:"inspection,omitempty"`
+	StructuredInput     *ConversationStructuredInput              `json:"structured_input,omitempty"`
+	Dependencies        *[]ConversationDependencyInput            `json:"dependencies,omitempty"`
+	ToolRequest         *ConversationToolRequest                  `json:"-"`
+	ClientID            string                                    `json:"client_id"`
+	ExpectedRevision    int64                                     `json:"expected_revision"`
+	Action              string                                    `json:"action"`
+	Reason              string                                    `json:"reason"`
+	Brief               *ConversationTaskBrief                    `json:"brief,omitempty"`
+	Delivery            *ConversationDelegationDelivery           `json:"delivery,omitempty"`
 }
 
 type ConversationAgentMessage struct {
@@ -207,6 +231,7 @@ type ConversationAgentMessage struct {
 	DeliveryMode         string                          `json:"delivery_mode"`
 	AfterRunID           string                          `json:"after_run_id,omitempty"`
 	ReplyToID            string                          `json:"reply_to_id,omitempty"`
+	AnsweredQuestionIDs  []string                        `json:"answered_question_ids,omitempty"`
 	AnsweredByID         string                          `json:"answered_by_id,omitempty"`
 	Superseded           bool                            `json:"superseded"`
 	Change               *ConversationRequirementChange  `json:"change,omitempty"`
@@ -241,10 +266,16 @@ type ConversationAgentMessageSend struct {
 }
 
 type ConversationDelegationDetail struct {
-	Publication *ConversationDeliveryPublicationReceipt `json:"publication,omitempty"`
+	DeliveryOmitted     bool                                    `json:"delivery_omitted,omitempty"`
+	ContractOmitted     bool                                    `json:"contract_omitted,omitempty"`
+	ContractPublication *ConversationContractPublicationReceipt `json:"contract_publication,omitempty"`
+	Publication         *ConversationDeliveryPublicationReceipt `json:"publication,omitempty"`
 	// set_participants returns a narrow write receipt. Read the delegation
 	// separately for its currently authorized agreement and execution content.
-	ParticipantsOnly bool                               `json:"participants_only,omitempty"`
+	ParticipantsOnly bool `json:"participants_only,omitempty"`
+	// Participant management returns the original write receipt. Obtain live
+	// content separately under the current grant and source permissions.
+	ManagementOnly   bool                               `json:"management_only,omitempty"`
 	Access           *ConversationCollaborationAccess   `json:"access,omitempty"`
 	Assignments      []ConversationDelegationAssignment `json:"assignments,omitempty"`
 	DependencyStates []ConversationDependencyState      `json:"dependency_states"`

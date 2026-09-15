@@ -411,10 +411,13 @@ func TestRedirectAndBounds(t *testing.T) {
 func TestContractAndConfigurationFailBeforeIO(t *testing.T) {
 	// C05 adds explicit shared Report/Analysis provenance to optional read ports.
 	// The actual reader remains the RPC authority; producer is proof context.
+	// Business snapshots now also carry separate original producer provenance.
 	// Existing DTOs and Go Backend remain unchanged, but strict descriptors require
 	// coordinated client/server deployment pins. Only explicit unsupported
 	// owners retain the old tool authorization path; denials never fall back.
-	const expected = "0975df00be8381ea7a3ec45a9b2aa68dedcd999c8c6901bd1ad8f82466374a53"
+	// E04 adds the trusted tool-owner parallelism declaration. Agent remains the
+	// execution owner and treats empty/legacy declarations as serial.
+	const expected = "cc2c8c87fdc30f8e9eecf8b087a28ad63a5f6d9f9227471e9fd5d3568d44d2d7"
 	if ContractSHA256() != expected {
 		t.Fatalf("public contract changed without compatibility review: %s", ContractSHA256())
 	}

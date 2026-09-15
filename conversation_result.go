@@ -70,6 +70,7 @@ type ConversationResultSlice struct {
 type ConversationContextCompaction struct {
 	Version     int `json:"version"`
 	Results     int `json:"results"`
+	Intervals   int `json:"intervals,omitempty"`
 	BeforeBytes int `json:"before_bytes"`
 	AfterBytes  int `json:"after_bytes"`
 }

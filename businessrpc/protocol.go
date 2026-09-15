@@ -70,6 +70,7 @@ type method struct {
 }
 
 var methods = []method{
+	{"business_shared_result_read", reflect.TypeFor[sharedReadInput[sdk.ConversationBusinessEvidence]](), reflect.TypeFor[bool]()},
 	{"report_shared_result_read", reflect.TypeFor[sharedReadInput[reportmodel.ReportQueryResultAuthorization]](), reflect.TypeFor[bool]()},
 	{"report_shared_catalog_read", reflect.TypeFor[sharedReadInput[reportmodel.ReportCatalogReadAuthorization]](), reflect.TypeFor[bool]()},
 	{"analysis_shared_result_read", reflect.TypeFor[sharedReadInput[reportmodel.AnalysisResultAuthorization]](), reflect.TypeFor[bool]()},

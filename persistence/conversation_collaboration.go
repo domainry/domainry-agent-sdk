@@ -18,10 +18,13 @@ type ConversationDelegationAdmission struct {
 }
 
 type ConversationDelegationTransferAdmission struct {
-	Request agentsdk.ConversationDelegationUpdate
-	Agent   agentsdk.ConversationAgentSnapshot
-	Task    agentsdk.ConversationTask
-	Handoff agentsdk.ConversationDelegationHandoff
+	// Resolved by the trusted service from the recipient owner's explicit
+	// binding after independent authorization; never a client/model choice.
+	ExecutionAuthority *agentsdk.ConversationAuthority `json:"-"`
+	Request            agentsdk.ConversationDelegationUpdate
+	Agent              agentsdk.ConversationAgentSnapshot
+	Task               agentsdk.ConversationTask
+	Handoff            agentsdk.ConversationDelegationHandoff
 }
 
 type ConversationDeliveryVerificationRepository interface {
@@ -64,6 +67,17 @@ type ConversationSourceReleaseRepository interface {
 	ConversationSourceReleases(context.Context, agentsdk.ConversationRunReference, agentsdk.ConversationAuthority) ([]ConversationSourceRelease, error)
 }
 
+// Storage proof is routed after current collaboration authorization. Publishing
+// must derive original run ownership and exact delegation membership in its transaction.
+type ConversationExecutionSharingRepository interface {
+	PublishConversationDelegationExecution(context.Context, string, agentsdk.ConversationExecutionShare, agentsdk.ConversationAuthority) (agentsdk.ConversationExecutionPublication, error)
+	ConversationDelegationExecutions(context.Context, string, agentsdk.ConversationAuthority) ([]ConversationSourceRelease, error)
+}
+
+type ConversationExecutionPublicationOwnerRepository interface {
+	ConversationDelegationExecutionPublications(context.Context, string, agentsdk.ConversationAuthority) ([]ConversationSourceRelease, error)
+}
+
 type ConversationDelegationTransferRepository interface {
 	ConversationDelegationTransferReceipt(context.Context, string, agentsdk.ConversationDelegationUpdate, agentsdk.ConversationAuthority) (agentsdk.ConversationDelegation, bool, error)
 	ConversationDelegationAssignments(context.Context, string, agentsdk.ConversationAuthority) ([]agentsdk.ConversationDelegationAssignment, error)
@@ -89,10 +103,46 @@ type ConversationCollaborationRepository interface {
 	SendConversationAgentMessage(context.Context, string, agentsdk.ConversationAgentMessageSend, string, agentsdk.ConversationAuthority) (agentsdk.ConversationAgentMessage, error)
 }
 
+// ConversationPeerLifecycleRepository lets the application freeze its current
+// lifecycle manifest on a peer-triggered foreground run. The legacy launch
+// method remains for stores used without lifecycle extensions.
+type ConversationPeerLifecycleRepository interface {
+	LaunchConversationPeerMessageWithLifecycle(context.Context, string, *agentsdk.ConversationLifecycleManifest) (agentsdk.ConversationRun, bool, error)
+}
+
 // Private canonical-record lookup for explicit republishing. It does not
 // project history or authorize any source access on its own.
 type ConversationDeliveryPublicationRepository interface {
 	ConversationDeliveryPublicationRecord(context.Context, string, int64, agentsdk.ConversationAuthority) (agentsdk.ConversationDeliveryRecord, error)
+}
+
+// Legacy declarations can be recovered only from an exact original admission
+// or an owned immutable run/task snapshot for this agreement and assignment.
+type ConversationContractPublicationRecord struct {
+	Agreement    agentsdk.ConversationAgreementRevision
+	Requirements agentsdk.ConversationAgentRequirements
+}
+
+func (r ConversationContractPublicationRecord) SourceReferences() []agentsdk.ConversationRunReference {
+	refs := append([]agentsdk.ConversationRunReference{}, r.Requirements.Sources...)
+	for _, ref := range []*agentsdk.ConversationRunReference{r.Agreement.Source, r.Agreement.InputSource, r.Agreement.ChangeSource} {
+		if ref != nil {
+			refs = append(refs, *ref)
+		}
+	}
+	for _, edge := range r.Agreement.Dependencies {
+		for _, ref := range []*agentsdk.ConversationRunReference{edge.Source, edge.InputSource} {
+			if ref != nil {
+				refs = append(refs, *ref)
+			}
+		}
+	}
+	return refs
+}
+
+type ConversationContractPublicationRepository interface {
+	ConversationContractPublicationRecord(context.Context, string, int64, agentsdk.ConversationAuthority) (ConversationContractPublicationRecord, error)
+	ConversationContractPublicationHistory(context.Context, string, int64, agentsdk.ConversationAuthority) (agentsdk.ConversationContractPublicationHistory, error)
 }
 
 // Discovery aggregates live load for owned or explicitly shared Agent
@@ -107,6 +157,7 @@ type ConversationAgentObservation struct {
 	Status              string
 	Usage               map[string]any
 	DurationMillis      int64
+	CoordinationMillis  int64
 	ToolCalls           int
 }
 type ConversationAgentLoad struct{ Running, Queued, Waiting int }
@@ -117,6 +168,13 @@ type ConversationAgentObservations struct {
 }
 type ConversationAgentDiscoveryRepository interface {
 	ConversationAgentObservations(context.Context, agentsdk.ConversationAuthority) (ConversationAgentObservations, error)
+}
+
+// ConversationAgentAncestryRepository returns only Agent identifiers along an
+// owned conversation's original delegation chain. Subject mappings route
+// private ancestors internally; this port grants no conversation or data read.
+type ConversationAgentAncestryRepository interface {
+	ConversationAgentAncestors(context.Context, string, agentsdk.ConversationAuthority) ([]string, error)
 }
 
 // Immutable disagreement revisions are read independently from bounded summaries.

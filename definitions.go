@@ -34,16 +34,42 @@ var (
 type LocalizedTextMap = map[string]map[string]string
 
 type SkillSchema struct {
-	Key            string           `json:"key"`
-	Version        string           `json:"version,omitempty"`
-	Name           string           `json:"name"`
-	Description    string           `json:"description,omitempty"`
-	I18n           LocalizedTextMap `json:"i18n,omitempty"`
-	Instructions   string           `json:"instructions,omitempty"`
-	AllowedTools   []string         `json:"allowed_tools,omitempty"`
-	AllowedObjects []string         `json:"allowed_objects,omitempty"`
-	RunMode        string           `json:"run_mode,omitempty"`
-	Config         map[string]any   `json:"config,omitempty"`
+	Key            string              `json:"key"`
+	Version        string              `json:"version,omitempty"`
+	Name           string              `json:"name"`
+	Description    string              `json:"description,omitempty"`
+	I18n           LocalizedTextMap    `json:"i18n,omitempty"`
+	Instructions   string              `json:"instructions,omitempty"`
+	InputSchema    json.RawMessage     `json:"input_schema,omitempty"`
+	OutputSchema   json.RawMessage     `json:"output_schema,omitempty"`
+	Resources      []SkillResource     `json:"resources,omitempty"`
+	Workflow       []SkillWorkflowStep `json:"workflow,omitempty"`
+	AllowedTools   []string            `json:"allowed_tools,omitempty"`
+	AllowedObjects []string            `json:"allowed_objects,omitempty"`
+	RunMode        string              `json:"run_mode,omitempty"`
+	Config         map[string]any      `json:"config,omitempty"`
+}
+
+// SkillResource is trusted, versioned supporting material. A resource is not
+// included in the model prompt until skill_load requests its key.
+type SkillResource struct {
+	Key         string `json:"key"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	MediaType   string `json:"media_type"`
+	Content     string `json:"content"`
+}
+
+// SkillWorkflowStep describes a reusable procedure without executing it. The
+// runtime still authorizes every named tool against the current Agent profile.
+type SkillWorkflowStep struct {
+	Key            string   `json:"key"`
+	Name           string   `json:"name"`
+	Instructions   string   `json:"instructions"`
+	DependsOn      []string `json:"depends_on,omitempty"`
+	AllowedTools   []string `json:"allowed_tools,omitempty"`
+	InputPointers  []string `json:"input_pointers,omitempty"`
+	OutputPointers []string `json:"output_pointers,omitempty"`
 }
 
 type AgentSchema struct {

@@ -14,14 +14,6 @@ type ConversationAgentDefinition struct {
 	SkillKeys    []string `json:"skill_keys"`
 }
 
-type ConversationSkillSummary struct {
-	Key          string   `json:"key"`
-	Version      string   `json:"version"`
-	Name         string   `json:"name"`
-	Description  string   `json:"description"`
-	AllowedTools []string `json:"allowed_tools"`
-}
-
 // Requirements describe task fit, never permissions. Sources are explicit run
 // prefixes checked for a new isolated conversation. Admitted roots can be read
 // with delegation_source_read under live source-owned result permissions;
@@ -66,17 +58,20 @@ type ConversationAgentCostEstimate struct {
 }
 
 type ConversationAgentHistory struct {
-	Runs               int     `json:"runs"`
-	CompletedRuns      int     `json:"completed_runs"`
-	FailedRuns         int     `json:"failed_runs"`
-	AcceptedDeliveries int     `json:"accepted_deliveries"`
-	ReviewedDeliveries int     `json:"reviewed_deliveries"`
-	UsageSamples       int     `json:"usage_samples"`
-	MeanInputTokens    int64   `json:"mean_input_tokens"`
-	MeanOutputTokens   int64   `json:"mean_output_tokens"`
-	MeanDurationMillis int64   `json:"mean_duration_ms"`
-	MeanToolCalls      float64 `json:"mean_tool_calls"`
-	Basis              string  `json:"basis"`
+	Runs                   int     `json:"runs"`
+	CompletedRuns          int     `json:"completed_runs"`
+	FailedRuns             int     `json:"failed_runs"`
+	AcceptedDeliveries     int     `json:"accepted_deliveries"`
+	ReviewedDeliveries     int     `json:"reviewed_deliveries"`
+	AcceptanceRateKnown    bool    `json:"acceptance_rate_known"`
+	AcceptanceRate         float64 `json:"acceptance_rate"`
+	UsageSamples           int     `json:"usage_samples"`
+	MeanInputTokens        int64   `json:"mean_input_tokens"`
+	MeanOutputTokens       int64   `json:"mean_output_tokens"`
+	MeanDurationMillis     int64   `json:"mean_duration_ms"`
+	MeanCoordinationMillis int64   `json:"mean_coordination_ms"`
+	MeanToolCalls          float64 `json:"mean_tool_calls"`
+	Basis                  string  `json:"basis"`
 }
 
 type ConversationAgentCandidate struct {

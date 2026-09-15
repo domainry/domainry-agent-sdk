@@ -20,6 +20,8 @@ type DeferredConversationHost interface {
 // The returned authorizer must also implement ConversationExecutionAuthorizer,
 // unless the module was configured with an explicit execution authorizer. This
 // includes text-only models; binding without current execution policy fails.
+// For configured library retrieval, the returned authorizer may also implement
+// KnowledgeLibraryAuthorizer. Explicit module library policy takes precedence.
 type ConversationApplicationHost interface {
 	ConversationAuthorizer() agentsdk.ConversationToolAuthorizer
 	ConversationBusinessSource() agentsdk.ConversationBusinessSource
@@ -38,6 +40,28 @@ type ConversationToolComposer interface {
 // for Agent-owned follow-up facts. Agent never imports Notification contracts.
 type ConversationFollowUpHost interface {
 	ConversationFollowUpPublisher() agentsdk.ConversationFollowUpPublisher
+}
+
+// ConversationLifecycleHost optionally contributes trusted, in-process
+// lifecycle policies and observers during startup assembly. Definitions and
+// configuration versions are frozen on admitted runs; a running service never
+// hot-swaps this slice.
+type ConversationLifecycleHost interface {
+	ConversationLifecycleExtensions() []agentsdk.ConversationLifecycleExtension
+}
+
+// ConversationCodeHost optionally supplies the independent restricted code
+// Runtime used by run_code. The Runtime receives no tool host or credentials;
+// binding calls return synchronously to Agent for policy and receipt handling.
+type ConversationCodeHost interface {
+	ConversationCodeRuntime() agentsdk.ConversationCodeRuntime
+}
+
+// ConversationCodingHost optionally supplies a deployment-owned restricted
+// coding workspace. It is intentionally separate from run_code: this host owns
+// files, PTYs, background processes and language-server subprocesses.
+type ConversationCodingHost interface {
+	ConversationCodingRuntime() agentsdk.ConversationCodingRuntime
 }
 
 // ConversationApplicationHostBinder is the optional conversation-only startup

@@ -23,6 +23,8 @@ type sharedReadInput[T any] struct {
 
 func sharedResultReadOperation(operation string) bool {
 	switch operation {
+	case "business_shared_result_read":
+		return true
 	case "report_shared_result_read":
 		return true
 	case "report_shared_catalog_read":
@@ -41,6 +43,13 @@ func validSharedProducer(producer, reader sdk.ConversationAuthority) bool {
 
 func dispatchSharedResultRead(ctx context.Context, backend Backend, in request) (any, error) {
 	switch in.Operation {
+	case "business_shared_result_read":
+		var input sharedReadInput[sdk.ConversationBusinessEvidence]
+		if decode(in.Payload, &input) != nil || !validSharedProducer(input.Producer, in.Authority) {
+			return nil, failure("bad_request")
+		}
+		err := sdk.AuthorizeSharedBusinessResultRead(ctx, backend, input.Input, in.Authority, input.Producer)
+		return err == nil, err
 	case "report_shared_result_read":
 		var input sharedReadInput[model.ReportQueryResultAuthorization]
 		if decode(in.Payload, &input) != nil || !validSharedProducer(input.Producer, in.Authority) {
@@ -88,6 +97,17 @@ func dispatchSharedResultRead(ctx context.Context, backend Backend, in request) 
 	}
 	return nil, failure("bad_request")
 }
+
+func (c *Client) AuthorizeSharedBusinessResultRead(ctx context.Context, in sdk.ConversationBusinessEvidence, a, producer sdk.ConversationAuthority) error {
+	var valid bool
+	err := c.call(ctx, "business_shared_result_read", a, sharedReadInput[sdk.ConversationBusinessEvidence]{Producer: producer, Input: in}, &valid)
+	if err == nil && !valid {
+		return failure("unavailable")
+	}
+	return err
+}
+
+var _ sdk.ConversationBusinessSharedResultReadSource = (*Client)(nil)
 
 func (c *Client) AuthorizeSharedReportResultRead(ctx context.Context, in model.ReportQueryResultAuthorization, a, producer sdk.ConversationAuthority) error {
 	var valid bool

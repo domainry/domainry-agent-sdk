@@ -10,6 +10,8 @@ type ConversationDelegationTransfer struct {
 // An assignment is an immutable record of who took responsibility, separate
 // from the stable delegation and from each execution run.
 type ConversationDelegationAssignment struct {
+	// Server-projected original executor metadata, independent of today's assignee.
+	ExecutionSubject  *ConversationExecutionSubject   `json:"execution_subject,omitempty"`
 	Number            int64                           `json:"number"`
 	AgentID           string                          `json:"agent_id"`
 	AgentRevision     int64                           `json:"agent_revision"`

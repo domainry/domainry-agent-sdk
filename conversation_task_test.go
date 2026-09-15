@@ -31,6 +31,11 @@ func TestBackgroundTaskConversationToolContractIsExplicitAndClosed(t *testing.T)
 	if !strings.Contains(raw, `"max_steps"`) || !strings.Contains(raw, `"max_tool_calls"`) || !strings.Contains(raw, `"max_output_bytes"`) || !strings.Contains(raw, `"timeout_seconds"`) {
 		t.Fatal("all background execution budgets must be explicit")
 	}
+	for _, field := range []string{`"verification_rules"`, `"arguments_schema"`, `"result_schema"`, `"min_receipts"`} {
+		if !strings.Contains(raw, field) {
+			t.Fatalf("task brief cannot declare program completion rule field %s", field)
+		}
+	}
 	var output map[string]any
 	if err := json.Unmarshal(definition.OutputSchema, &output); err != nil || output["additionalProperties"] != false {
 		t.Fatalf("task receipt schema must be a closed object: %v %#v", err, output)
@@ -46,7 +51,7 @@ func TestBackgroundTaskScopeAndPrompt(t *testing.T) {
 	for _, tool := range tools {
 		counts[tool.Key]++
 	}
-	for _, key := range []string{"task_start", "task_get", "task_list", "task_cancel", "task_resume"} {
+	for _, key := range []string{"task_start", "task_get", "task_list", "task_cancel", "task_resume", "task_update", "plan_update", "completion_submit", "task_review"} {
 		if counts[key] != 1 {
 			t.Fatalf("%s registration count = %d", key, counts[key])
 		}
@@ -55,14 +60,25 @@ func TestBackgroundTaskScopeAndPrompt(t *testing.T) {
 	if !strings.Contains(prompt, "Goal:\nverify release") || !strings.Contains(prompt, "Input:\nbuild 42") {
 		t.Fatalf("unexpected frozen task prompt: %q", prompt)
 	}
+	eventPrompt := ConversationTaskPrompt(ConversationTask{
+		Goal: "handle escalation", Input: `{"ticket_id":"42"}`,
+		BusinessEvent: &ConversationTaskBusinessEvent{
+			Source: ConversationBusinessEventSource{EventID: "event-2", Provider: "support", EventType: "ticket.escalated", ExternalID: "ticket-42"},
+			Rule:   ConversationBusinessEventRule{Key: "ticket-escalated", Revision: strings.Repeat("a", 64)},
+			Mode:   "wake", TargetAgentID: "agent-1", RelatedTaskID: "task-1",
+		},
+	})
+	if !strings.Contains(eventPrompt, `"event_id":"event-2"`) || !strings.Contains(eventPrompt, `"related_task_id":"task-1"`) || !strings.Contains(eventPrompt, "new successor task") || !strings.Contains(eventPrompt, "do not repeat") {
+		t.Fatalf("business-event prompt omitted immutable wake provenance: %q", eventPrompt)
+	}
 }
 
 func TestBackgroundTaskControlToolsRequireExplicitScopeAndRoutes(t *testing.T) {
-	if (&ConversationWriteScope{}).Allows("task_cancel") || !(&ConversationWriteScope{BackgroundTasks: true}).Allows("task_cancel") || !(&ConversationWriteScope{BackgroundTasks: true}).Allows("task_resume") {
+	if (&ConversationWriteScope{}).Allows("task_cancel") || !(&ConversationWriteScope{BackgroundTasks: true}).Allows("task_cancel") || !(&ConversationWriteScope{BackgroundTasks: true}).Allows("task_resume") || !(&ConversationWriteScope{BackgroundTasks: true}).Allows("task_update") || !(&ConversationWriteScope{BackgroundTasks: true}).Allows("plan_update") || !(&ConversationWriteScope{BackgroundTasks: true}).Allows("completion_submit") || !(&ConversationWriteScope{BackgroundTasks: true}).Allows("task_review") {
 		t.Fatal("task control must use only the background-task write scope")
 	}
 	definitions := BackgroundTaskControlConversationTools()
-	if len(definitions) != 2 || definitions[0].Key != "task_cancel" || definitions[1].Key != "task_resume" {
+	if len(definitions) != 4 || definitions[0].Key != "task_cancel" || definitions[1].Key != "task_resume" || definitions[2].Key != "task_update" || definitions[3].Key != "task_review" {
 		t.Fatalf("task control definitions=%+v", definitions)
 	}
 	for _, definition := range definitions {
@@ -70,12 +86,18 @@ func TestBackgroundTaskControlToolsRequireExplicitScopeAndRoutes(t *testing.T) {
 			t.Fatalf("task control contract=%+v", definition)
 		}
 	}
+	if !strings.Contains(string(definitions[2].InputSchema), `"audience":{"type":"string","minLength":1`) {
+		t.Fatal("task agreement must name its intended audience")
+	}
 	routes := map[string]ConversationHTTPDefinition{}
 	for _, route := range ConversationHTTPDefinitions() {
 		routes[route.Operation] = route
 	}
-	if routes["tasks_cancel"].Pattern != "POST /agent/conversation-tasks/{taskID}/cancel" || routes["tasks_resume"].Pattern != "POST /agent/conversation-tasks/{taskID}/resume" {
+	if routes["tasks_cancel"].Pattern != "POST /agent/conversation-tasks/{taskID}/cancel" || routes["tasks_resume"].Pattern != "POST /agent/conversation-tasks/{taskID}/resume" || routes["tasks_update"].Pattern != "PATCH /agent/conversation-tasks/{taskID}/agreement" || routes["tasks_plans"].Pattern != "GET /agent/conversation-tasks/{taskID}/plans" {
 		t.Fatalf("task control routes=%+v", routes)
+	}
+	if routes["tasks_completions"].Pattern != "GET /agent/conversation-tasks/{taskID}/completions" || routes["tasks_completion_review"].Pattern != "POST /agent/conversation-tasks/{taskID}/completion-review" {
+		t.Fatalf("task completion routes=%+v", routes)
 	}
 }
 

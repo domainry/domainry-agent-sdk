@@ -35,16 +35,18 @@ type ConversationRequirementChange struct {
 // Each agreement revision is immutable. Execution adoption is recorded when
 // the recipient's first frozen model step commits, separately from resume.
 type ConversationAgreementRevision struct {
-	StructuredInput *ConversationStructuredInput `json:"structured_input,omitempty"`
-	InputSource     *ConversationRunReference    `json:"input_source,omitempty"`
-	Revision        int64                        `json:"revision"`
-	Brief           ConversationTaskBrief        `json:"brief"`
-	Dependencies    []ConversationTaskDependency `json:"dependencies"`
-	ChangedFields   []string                     `json:"changed_fields"`
-	Reason          string                       `json:"reason"`
-	FromUserID      string                       `json:"from_user_id,omitempty"`
-	FromAgentID     string                       `json:"from_agent_id,omitempty"`
-	Source          *ConversationRunReference    `json:"source,omitempty"`
+	// Nil marks legacy history without an immutable requirements snapshot.
+	Requirements    *ConversationAgentRequirements `json:"requirements,omitempty"`
+	StructuredInput *ConversationStructuredInput   `json:"structured_input,omitempty"`
+	InputSource     *ConversationRunReference      `json:"input_source,omitempty"`
+	Revision        int64                          `json:"revision"`
+	Brief           ConversationTaskBrief          `json:"brief"`
+	Dependencies    []ConversationTaskDependency   `json:"dependencies"`
+	ChangedFields   []string                       `json:"changed_fields"`
+	Reason          string                         `json:"reason"`
+	FromUserID      string                         `json:"from_user_id,omitempty"`
+	FromAgentID     string                         `json:"from_agent_id,omitempty"`
+	Source          *ConversationRunReference      `json:"source,omitempty"`
 	// ChangeSource traces the decision and reason; Source remains the brief's source.
 	ChangeSource *ConversationRunReference `json:"change_source,omitempty"`
 	CreatedAt    time.Time                 `json:"created_at"`

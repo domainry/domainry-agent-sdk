@@ -27,6 +27,9 @@ func (b *sharedResultReadFixture) read(operation string, input any, reader, prod
 	}
 	return nil
 }
+func (b *sharedResultReadFixture) AuthorizeSharedBusinessResultRead(_ context.Context, input sdk.ConversationBusinessEvidence, reader, producer sdk.ConversationAuthority) error {
+	return b.read("business_shared_result_read", input, reader, producer)
+}
 func (b *sharedResultReadFixture) AuthorizeSharedReportResultRead(_ context.Context, input model.ReportQueryResultAuthorization, reader, producer sdk.ConversationAuthority) error {
 	return b.read("report_shared_result_read", input, reader, producer)
 }
@@ -43,12 +46,14 @@ func (b *sharedResultReadFixture) AuthorizeSharedAnalysisCatalogRead(_ context.C
 func TestSharedProfessionalReadRPCPreservesReaderAndOriginalProvenance(t *testing.T) {
 	producer := testAuthority
 	producer.UserID, producer.RoleKey = "professional-b", "professional-role"
+	business := sdk.ConversationBusinessEvidence{Version: 1, Operation: "get_record", Source: testSource, ScopeSHA256: "original-producer-scope", Input: json.RawMessage(`{"object_key":"customer","record_id":"original-record"}`), Data: json.RawMessage(`{"amount":9007199254740993}`), HostProof: "original-business-proof"}
 	query := model.ReportQueryResultAuthorization{Query: model.ReportObjectSQLRequest{ReportKey: "sales", Parameters: map[string]any{"minimum": json.Number("9007199254740993")}}, Result: model.ReportQueryResult{Source: model.ReportQuerySource{ReadProof: "original-report-read-proof"}}}
 	catalog := model.ReportCatalogReadAuthorization{Result: model.ReportCatalog{ReadProof: "original-catalog-proof"}}
 	analysis := model.AnalysisResultAuthorization{Request: model.AnalysisRequest{DatasetKey: "sales"}, Result: model.AnalysisResult{Source: model.AnalysisSource{ReadProof: "original-analysis-proof"}}}
 	analysisCatalog := model.AnalysisCatalogReadAuthorization{Request: model.AnalysisCatalogRequest{DatasetKey: "sales"}, Result: model.AnalysisCatalog{ReadProof: "original-analysis-catalog-proof"}}
 	b := &sharedResultReadFixture{backendFixture: newBackend(), producer: producer, expected: map[string]any{
-		"report_shared_result_read": query, "report_shared_catalog_read": catalog,
+		"business_shared_result_read": business,
+		"report_shared_result_read":   query, "report_shared_catalog_read": catalog,
 		"analysis_shared_result_read": analysis, "analysis_shared_catalog_read": analysisCatalog,
 	}}
 	b.allow.Store(false)
@@ -66,6 +71,9 @@ func TestSharedProfessionalReadRPCPreservesReaderAndOriginalProvenance(t *testin
 		operation string
 		read      func(*Client, sdk.ConversationAuthority, sdk.ConversationAuthority) error
 	}{
+		{"business_shared_result_read", func(c *Client, a, p sdk.ConversationAuthority) error {
+			return c.AuthorizeSharedBusinessResultRead(t.Context(), business, a, p)
+		}},
 		{"report_shared_result_read", func(c *Client, a, p sdk.ConversationAuthority) error {
 			return c.AuthorizeSharedReportResultRead(t.Context(), query, a, p)
 		}},
