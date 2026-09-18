@@ -13,7 +13,7 @@ func TestAgentHTTPAdapterContractOwnsCompleteRouteCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(actions) != 138+len(ConversationToolActions()) {
+	if len(actions) != 139+len(ConversationToolActions()) {
 		t.Fatalf("Agent Action count=%d", len(actions))
 	}
 	roleActions, nonHTTPActions := 0, 0
@@ -50,7 +50,7 @@ func TestAgentHTTPAdapterContractOwnsCompleteRouteCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if contract.ContractVersion != AgentHTTPAdapterContractVersion || contract.Owner != "agent" || len(contract.Routes) != 125 || len(contract.OpenAPI) != 125 {
+	if contract.ContractVersion != AgentHTTPAdapterContractVersion || contract.Owner != "agent" || len(contract.Routes) != 126 || len(contract.OpenAPI) != 126 {
 		t.Fatalf("Agent HTTP contract=%s owner=%s routes=%d operations=%d", contract.ContractVersion, contract.Owner, len(contract.Routes), len(contract.OpenAPI))
 	}
 	seen := map[string]bool{}
@@ -76,6 +76,10 @@ func TestAgentHTTPAdapterContractOwnsCompleteRouteCatalog(t *testing.T) {
 	stream := contract.OpenAPI["POST /agent/runs/stream"]
 	if stream["requestBody"] == nil || stream["parameters"] == nil || stream["x-domainry-runtime-client-method"] != "runAgentStream" {
 		t.Fatalf("Agent stream operation=%#v", stream)
+	}
+	directTask := contract.OpenAPI["POST /agent/task-runs"]
+	if directTask["requestBody"] == nil || directTask["operationId"] != "startAgentTaskRun" {
+		t.Fatalf("Agent direct task operation=%#v", directTask)
 	}
 	tool := contract.OpenAPI["POST /agent/task-tools/invoke"]
 	security, ok := tool["security"].([]any)

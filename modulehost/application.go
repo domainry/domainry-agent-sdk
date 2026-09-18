@@ -80,6 +80,35 @@ type InteractiveTaskAuthorization struct {
 	Evidence agentmodel.AgentAuthorizationEvidence
 }
 
+// TaskAttachmentSource is an authenticated reference to bytes already owned
+// by the embedding host. Agent deliberately does not understand the host's
+// record or file-storage implementation; it asks the host to resolve the exact
+// readable record field into one verified attachment before accepting a task.
+type TaskAttachmentSource struct {
+	Kind      string
+	ObjectKey string
+	RecordID  string
+	FieldKey  string
+	Filename  string
+	Detail    string
+}
+
+const TaskAttachmentSourceKindRuntimeRecordFile = "runtime_record_file"
+
+type TaskAttachmentSourceRequest struct {
+	Principal   Principal
+	TaskKey     string
+	TaskVersion string
+	Source      TaskAttachmentSource
+}
+
+// TaskAttachmentSourceResolver is optional because remote/SaaS Agent hosts may
+// accept only direct multipart bytes. Module hosts implement it when product
+// files can be referenced without uploading the same bytes a second time.
+type TaskAttachmentSourceResolver interface {
+	ResolveTaskAttachmentSource(context.Context, TaskAttachmentSourceRequest) (agentsdk.TaskAttachment, error)
+}
+
 type InteractiveToolInvocationRequest struct {
 	Context                                   agentsdk.GlobalContext
 	Principal                                 Principal

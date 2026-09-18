@@ -95,22 +95,23 @@ type AgentExecutionLimits struct {
 }
 
 type AgentTaskDefinition struct {
-	ContractVersion string               `json:"contract_version"`
-	Key             string               `json:"key"`
-	Version         string               `json:"version"`
-	Name            string               `json:"name,omitempty"`
-	Description     string               `json:"description,omitempty"`
-	I18n            LocalizedTextMap     `json:"i18n,omitempty"`
-	AgentKey        string               `json:"agent_key"`
-	Instruction     string               `json:"instruction"`
-	InputSchema     map[string]any       `json:"input_schema"`
-	OutputSchema    map[string]any       `json:"output_schema"`
-	AllowedObjects  []string             `json:"allowed_objects,omitempty"`
-	AllowedActions  []string             `json:"allowed_actions,omitempty"`
-	AllowedOutcomes []string             `json:"allowed_outcomes"`
-	SideEffectMode  string               `json:"side_effect_mode"`
-	ExecutionLimits AgentExecutionLimits `json:"execution_limits,omitempty"`
-	Enabled         bool                 `json:"enabled"`
+	ContractVersion  string                     `json:"contract_version"`
+	Key              string                     `json:"key"`
+	Version          string                     `json:"version"`
+	Name             string                     `json:"name,omitempty"`
+	Description      string                     `json:"description,omitempty"`
+	I18n             LocalizedTextMap           `json:"i18n,omitempty"`
+	AgentKey         string                     `json:"agent_key"`
+	Instruction      string                     `json:"instruction"`
+	InputSchema      map[string]any             `json:"input_schema"`
+	AttachmentSchema *AgentTaskAttachmentSchema `json:"attachment_schema,omitempty"`
+	OutputSchema     map[string]any             `json:"output_schema"`
+	AllowedObjects   []string                   `json:"allowed_objects,omitempty"`
+	AllowedActions   []string                   `json:"allowed_actions,omitempty"`
+	AllowedOutcomes  []string                   `json:"allowed_outcomes"`
+	SideEffectMode   string                     `json:"side_effect_mode"`
+	ExecutionLimits  AgentExecutionLimits       `json:"execution_limits,omitempty"`
+	Enabled          bool                       `json:"enabled"`
 }
 
 type TaskDefinition = AgentTaskDefinition

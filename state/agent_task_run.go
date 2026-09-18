@@ -130,6 +130,7 @@ type AgentTaskRun struct {
 	Outcome            string                       `json:"outcome,omitempty"`
 	Identity           agentsdk.ExecutionIdentity   `json:"identity"`
 	Input              map[string]any               `json:"input,omitempty"`
+	Attachments        []agentsdk.TaskAttachment    `json:"attachments,omitempty"`
 	Output             map[string]any               `json:"output,omitempty"`
 	RawEvidenceRef     string                       `json:"raw_evidence_ref,omitempty"`
 	Attempt            int                          `json:"attempt"`

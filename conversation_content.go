@@ -5,9 +5,10 @@ package agentsdk
 // order is authoritative. Image bytes are never accepted from JSON or stored
 // in Agent persistence.
 type ConversationContentBlock struct {
-	Type  string                      `json:"type"` // text or image
+	Type  string                      `json:"type"` // text, image or file
 	Text  string                      `json:"text,omitempty"`
 	Image *ConversationImageReference `json:"image,omitempty"`
+	File  *ConversationFileReference  `json:"file,omitempty"`
 }
 
 // ConversationImageReference freezes the immutable identity of one private
@@ -26,4 +27,17 @@ type ConversationImageReference struct {
 	Revision       int64                     `json:"revision"`
 	Detail         string                    `json:"detail,omitempty"` // auto, low or high
 	Data           []byte                    `json:"-"`
+}
+
+// ConversationFileReference is the provider-facing immutable identity of a
+// non-image task file. It is currently used for PDF document input. Data is
+// ephemeral and must never be serialized into persistence.
+type ConversationFileReference struct {
+	AttachmentID string `json:"attachment_id"`
+	Filename     string `json:"filename"`
+	ContentType  string `json:"content_type"`
+	Bytes        int64  `json:"bytes"`
+	SHA256       string `json:"sha256"`
+	Revision     int64  `json:"revision"`
+	Data         []byte `json:"-"`
 }

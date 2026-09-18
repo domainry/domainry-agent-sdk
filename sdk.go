@@ -122,6 +122,7 @@ type TaskRequest struct {
 	Task                TaskDefinition    `json:"task"`
 	Identity            ExecutionIdentity `json:"identity"`
 	Input               map[string]any    `json:"input,omitempty"`
+	Attachments         []TaskAttachment  `json:"attachments,omitempty"`
 	AllowedObjects      []string          `json:"allowed_objects,omitempty"`
 	AllowedActions      []string          `json:"allowed_actions,omitempty"`
 	AllowedOutcomes     []string          `json:"allowed_outcomes,omitempty"`

@@ -33,6 +33,7 @@ const (
 	ActionAgentProposalsCreate  = "agent.proposals.create"
 	ActionAgentProposalsApprove = "agent.proposals.approve"
 	ActionAgentProposalsReject  = "agent.proposals.reject"
+	ActionAgentTaskRunsStart    = "agent.task_runs.start"
 	ActionAgentTaskRunsGet      = "agent.task_runs.get"
 	ActionAgentTaskToolsInvoke  = "agent.task_tools.invoke"
 	ActionAgentAnalysisQuery    = "agent.analysis.query"
@@ -89,6 +90,7 @@ func AgentAuthorizationActions() ([]actioncontract.ActionDefinition, error) {
 		agentPrincipalAction(ActionAgentProposalsApprove, AgentCapabilityProposals, "Agent proposals", "Approve proposal", "POST /agent/proposals/{proposalID}/approve", actioncontract.EffectWrite, "natural", "mutation_audit_required"),
 		agentPrincipalAction(ActionAgentProposalsReject, AgentCapabilityProposals, "Agent proposals", "Reject proposal", "POST /agent/proposals/{proposalID}/reject", actioncontract.EffectWrite, "natural", "mutation_audit_required"),
 		agentPrincipalAction(ActionAgentRunsGet, AgentCapabilityDialog, "Agent dialog and analysis", "Read conversation run", "GET /agent/runs/{runID}", actioncontract.EffectRead, "not_applicable", "owner_read_audit_policy"),
+		agentPrincipalAction(ActionAgentTaskRunsStart, AgentCapabilityTaskExecution, "Agent task execution", "Start task run with private attachments", "POST /agent/task-runs", actioncontract.EffectWrite, "caller_key_required", "mutation_audit_required"),
 		agentPrincipalAction(ActionAgentTaskRunsGet, AgentCapabilityDialog, "Agent dialog and analysis", "Read own task run", "GET /agent/task-runs/{taskRunID}", actioncontract.EffectRead, "not_applicable", "owner_read_audit_policy"),
 		agentDelegatedCredentialAction(ActionAgentTaskToolsInvoke, AgentCapabilityToolGateway, "Agent task tool gateway", "Invoke task tool", "POST /agent/task-tools/invoke", actioncontract.EffectWrite, "credential_payload_key_required", "credential_scoped_tool_audit"),
 		agentPrincipalAction(ActionAgentAnalysisQuery, AgentCapabilityDialog, "Agent dialog and analysis", "Query analysis", "POST /agent/analysis/query", actioncontract.EffectRead, "not_applicable", "owner_read_audit_policy"),
@@ -316,6 +318,11 @@ func agentHTTPAdapterOperations() map[string]map[string]any {
 	operations["POST /agent/proposals/{proposalID}/reject"] = agentOperation("rejectAgentProposal", "Reject an Agent proposal", bearerSecurity(), []any{pathParameter("proposalID")}, schemaReference("AgentProposalDecisionRequest"), false, "200", schemaReference("AgentProposal"))
 
 	operations["GET /agent/runs/{runID}"] = agentOperation("getAgentRun", "Read one principal-owned Agent conversation run", bearerSecurity(), []any{pathParameter("runID")}, nil, false, "200", schemaReference("AgentInteractiveRun"))
+	operations["POST /agent/task-runs"] = agentOperation("startAgentTaskRun", "Start one principal-owned Agent task with private image or PDF inputs or authenticated Runtime file references", bearerSecurity(), []any{headerParameter("Idempotency-Key", true)}, nil, false, "202", schemaReference("AgentTaskStartResult"))
+	operations["POST /agent/task-runs"]["requestBody"] = map[string]any{"required": true, "content": map[string]any{"multipart/form-data": map[string]any{"schema": map[string]any{"type": "object", "properties": map[string]any{
+		"request": map[string]any{"type": "string", "description": "JSON AgentTaskStartRequest metadata; attachment_sources may reference authenticated Runtime record files"},
+		"files":   map[string]any{"type": "array", "minItems": 1, "maxItems": TaskAttachmentMaxCount, "items": map[string]any{"type": "string", "format": "binary"}},
+	}, "required": []string{"request"}}}}}
 	operations["GET /agent/task-runs/{taskRunID}"] = agentOperation("getAgentTaskRun", "Read one principal-owned Agent task run", bearerSecurity(), []any{pathParameter("taskRunID")}, nil, false, "200", schemaReference("AgentTaskRunView"))
 	operations["POST /agent/task-tools/invoke"] = agentOperation("invokeAgentTaskTool", "Invoke a credential-scoped Agent task tool", []any{}, nil, schemaReference("AgentTaskToolInvokeRequest"), true, "200", schemaReference("AgentTaskToolResult"))
 	operations["POST /agent/analysis/query"] = agentOperation("queryAgentAnalysis", "Run a principal-scoped Agent analysis query", bearerSecurity(), nil, schemaReference("AgentAnalysisQueryRequest"), true, "200", schemaReference("AgentAnalysisResult"))
@@ -376,6 +383,7 @@ func agentHTTPComponents() map[string]map[string]json.RawMessage {
 	schemas["AgentInteractiveRun"] = rawSchema(agentInteractiveRunSchema())
 	schemas["AgentInteractiveExecutionResult"] = rawSchema(objectSchema(map[string]any{"run": schemaReference("AgentInteractiveRun"), "result": schemaReference("AgentInteractiveResult")}, "run", "result"))
 	schemas["AgentTaskRunView"] = rawSchema(agentTaskRunViewSchema())
+	schemas["AgentTaskStartResult"] = rawSchema(objectSchema(map[string]any{"task": schemaReference("AgentTaskRunView"), "replayed": map[string]any{"type": "boolean"}}, "task", "replayed"))
 	schemas["AgentTaskRunList"] = rawSchema(objectSchema(map[string]any{"items": arraySchema(schemaReference("AgentTaskRunView")), "count": map[string]any{"type": "integer"}}, "items", "count"))
 	schemas["AgentTaskOperationRequest"] = rawSchema(objectSchema(map[string]any{"reason": map[string]any{"type": "string", "minLength": 1}}, "reason"))
 	schemas["AgentTaskOperationResult"] = rawSchema(objectSchema(map[string]any{"task": schemaReference("AgentTaskRunView"), "replayed": map[string]any{"type": "boolean"}, "idempotency_key": stringSchema()}, "task", "replayed"))
