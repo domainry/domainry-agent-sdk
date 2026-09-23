@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	actioncontract "github.com/domainry/domainry-foundation/action"
-	"github.com/domainry/domainry-foundation/modulecapability"
 )
 
 const AgentCapabilityCollaboration = "agent.collaboration"
@@ -190,70 +189,6 @@ func conversationActions() []actioncontract.ActionDefinition {
 			action.Permission = permission
 		}
 		out = append(out, action)
-	}
-	return out
-}
-func ConversationOpenAPIOperations() map[string]map[string]any {
-	out := map[string]map[string]any{}
-	for _, d := range ConversationHTTPDefinitions() {
-		status := "200"
-		if d.Operation == "send" {
-			status = "202"
-		}
-		content := map[string]any{"application/json": map[string]any{"schema": modulecapability.JSONSchemaForGoValue(d.Output)}}
-		if d.Operation == "stream" {
-			content = map[string]any{"text/event-stream": map[string]any{"schema": map[string]any{"type": "string"}}}
-		}
-		if d.Operation == "artifacts_download" || d.Operation == "delegations_export" {
-			binary := map[string]any{"schema": map[string]any{"type": "string", "format": "binary"}}
-			content = map[string]any{"text/markdown": binary, "text/csv": binary}
-		}
-		if d.Operation == "trajectory_export" {
-			content = map[string]any{"application/json": map[string]any{"schema": map[string]any{"type": "string", "format": "binary"}}}
-		}
-		if d.Operation == "attachments_download" || d.Operation == "documents_download" {
-			content = map[string]any{"application/octet-stream": map[string]any{"schema": map[string]any{"type": "string", "format": "binary"}}}
-		}
-		responses := map[string]any{status: map[string]any{"description": "Success", "content": content}}
-		for _, code := range []string{"400", "403", "404", "409", "503"} {
-			responses[code] = map[string]any{"description": "Conversation request error", "content": map[string]any{"application/json": map[string]any{"schema": map[string]any{"type": "object", "properties": map[string]any{"code": map[string]any{"type": "string"}}, "required": []string{"code"}}}}}
-		}
-		op := map[string]any{"operationId": ConversationActionPrefix + d.Operation, "summary": d.Operation, "tags": []string{"Agent conversations"}, "responses": responses}
-		if d.Input != nil {
-			op["requestBody"] = map[string]any{"required": true, "content": map[string]any{"application/json": map[string]any{"schema": modulecapability.JSONSchemaForGoValue(d.Input)}}}
-		}
-		if d.Operation == "attachments_upload" || d.Operation == "documents_upload" {
-			op["requestBody"] = map[string]any{"required": true, "content": map[string]any{"application/octet-stream": map[string]any{"schema": map[string]any{"type": "string", "format": "binary", "maxLength": ConversationAttachmentMaxBytes}}}}
-			op["description"] = "Upload a private original file, maximum 16 MiB. client_id makes identical retries idempotent. Filename must include an allowed document extension. Stored does not mean indexed; private retrieval must be separately verified. No server path, owner or permission IDs are accepted."
-			responses["413"] = map[string]any{"description": "Attachment exceeds upload limit"}
-		}
-		if d.Operation == "documents_upload" {
-			op["description"] = "Upload an immutable original into the selected library, maximum 16 MiB. Requires editor or manager membership, current Identity permission and an explicitly managed dedicated remote KB. All readers of the library can access it. Queued or indexing is not ready; deletion immediately revokes local retrieval and reports pending remote cleanup. No server path, remote KB, owner or ACL is accepted."
-		}
-		params := []any{}
-		for _, part := range strings.Split(d.Pattern, "/") {
-			if strings.HasPrefix(part, "{") {
-				params = append(params, map[string]any{"name": strings.Trim(part, "{}"), "in": "path", "required": true, "schema": map[string]any{"type": "string"}})
-			}
-		}
-		for _, name := range d.Query {
-			typ := "integer"
-			if name == "before_id" || name == "search" || name == "query" || name == "status" || name == "source_conversation_id" || name == "batch_id" || name == "cursor" || name == "after" || name == "client_id" || name == "filename" {
-				typ = "string"
-			}
-			if name == "include_archived" {
-				typ = "boolean"
-			}
-			params = append(params, map[string]any{"name": name, "in": "query", "required": name == "expected_revision" || d.Operation == "attachments_upload" || d.Operation == "documents_upload", "schema": map[string]any{"type": typ}})
-		}
-		if d.Operation == "stream" {
-			params = append(params, map[string]any{"name": "Last-Event-ID", "in": "header", "schema": map[string]any{"type": "string"}})
-			op["description"] = "Replays committed run events and message.delta text chunks when conversation.stream.v1 is supported. Reconnect with Last-Event-ID; connections close after 30 seconds. Run snapshots include draft_text, draft_bytes and last_event_seq. Delta offsets are UTF-8 bytes within an attempt; run.started resets the draft. Only run.completed promotes a draft to message history. Resume adds later events to the same run."
-		}
-		if len(params) > 0 {
-			op["parameters"] = params
-		}
-		out[d.Pattern] = op
 	}
 	return out
 }

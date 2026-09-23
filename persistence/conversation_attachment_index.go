@@ -46,6 +46,8 @@ type ConversationAttachmentIndexProgress struct {
 // attachment and always preserve its owner and originating conversation.
 type ConversationAttachmentIndexRepository interface {
 	KnowledgeSourceRegistry
+	AttachmentContent(context.Context, string, agentsdk.ConversationAuthority) ([]byte, error)
+	DeleteAttachmentContent(context.Context, string, agentsdk.ConversationAuthority) error
 	ActivateAttachmentKnowledgeSource(context.Context, string, string, string) error
 	QueueAttachmentIndex(context.Context, string, int64, ConversationAttachmentSource, agentsdk.ConversationAuthority) (ConversationAttachmentRecord, error)
 	ClaimAttachmentIndexWork(context.Context, string, string, time.Time, time.Duration) (ConversationAttachmentIndexLease, bool, error)

@@ -69,12 +69,3 @@ type ConversationAttachmentService interface {
 type ConversationAttachmentAuthorizer interface {
 	AuthorizeConversationAttachment(context.Context, string, ConversationAuthority) error
 }
-
-// Storage is a private host port. id is a reserved attachment ID, hash is the
-// expected SHA-256. Deletion must be idempotent and permanently fence late puts
-// for that owner/id, including across host restarts. Returned refs are opaque.
-type ConversationAttachmentStorage interface {
-	PutAttachmentContent(context.Context, string, string, []byte, ConversationAuthority) (string, error)
-	ReadAttachmentContent(context.Context, string, string, ConversationAuthority) ([]byte, error)
-	DeleteAttachmentContent(context.Context, string, ConversationAuthority) error
-}

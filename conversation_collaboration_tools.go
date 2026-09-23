@@ -2,7 +2,6 @@ package agentsdk
 
 import (
 	"encoding/json"
-	"github.com/domainry/domainry-foundation/modulecapability"
 	"strings"
 	"sync"
 )
@@ -31,7 +30,7 @@ type ConversationDelegationSourceSlice struct {
 }
 
 func collaborationToolSchema(value any) json.RawMessage {
-	schema := modulecapability.JSONSchemaForGoValue(value)
+	schema := toolJSONSchemaForGoValue(value)
 	var strip func(map[string]any)
 	strip = func(node map[string]any) {
 		if properties, ok := node["properties"].(map[string]any); ok {

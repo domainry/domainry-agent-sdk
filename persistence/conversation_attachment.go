@@ -2,7 +2,6 @@ package persistence
 
 import (
 	"context"
-	"time"
 
 	agentsdk "github.com/domainry/domainry-agent-sdk"
 )
@@ -12,7 +11,6 @@ import (
 type ConversationAttachmentRecord struct {
 	Attachment    agentsdk.ConversationAttachment `json:"attachment"`
 	RequestSHA256 string                          `json:"request_sha256"`
-	BodyRef       string                          `json:"body_ref,omitempty"`
 	Source        *ConversationAttachmentSource   `json:"source,omitempty"`
 	Index         *ConversationAttachmentIndex    `json:"index,omitempty"`
 }
@@ -35,6 +33,9 @@ type ConversationAttachmentReserve struct {
 	ContentType    string
 	SHA256         string
 	Bytes          int64
+	// Content is trusted application input. It is written through the
+	// deployment Artifact ContentWriter and is never serialized into SQL.
+	Content []byte `json:"-"`
 }
 
 // Revision fences stale upload/index workers. A stored upload is not ready.
@@ -42,8 +43,6 @@ type ConversationAttachmentReserve struct {
 // ready requires positive indexing and private-ACL verification by the host.
 type ConversationAttachmentTransition struct {
 	State     string
-	BodyRef   string
-	Source    *ConversationAttachmentSource
 	ErrorCode string
 }
 
@@ -52,16 +51,6 @@ type ConversationAttachmentRepository interface {
 	AttachmentRecord(context.Context, string, agentsdk.ConversationAuthority) (ConversationAttachmentRecord, error)
 	Attachments(context.Context, string, string, int, agentsdk.ConversationAuthority) (agentsdk.ConversationAttachmentPage, error)
 	TransitionAttachment(context.Context, string, int64, ConversationAttachmentTransition, agentsdk.ConversationAuthority) (ConversationAttachmentRecord, error)
-	// Runtime-scoped host maintenance, never exposed through a user RPC.
-	AttachmentCleanupCandidates(context.Context, string, time.Time, int) ([]ConversationAttachmentCleanup, error)
-	DeferAttachmentCleanup(context.Context, string, time.Time, agentsdk.ConversationAuthority) error
-	// Tombstones remain readable through the trusted record interface after
-	// deleting a conversation so cleanup can resume without its parent row.
-}
-
-// Enqueued atomically when access is revoked. This authority identifies the
-// original private storage namespace; it does not authorize new user actions.
-type ConversationAttachmentCleanup struct {
-	AttachmentID string                         `json:"attachment_id"`
-	Authority    agentsdk.ConversationAuthority `json:"authority"`
+	AttachmentContent(context.Context, string, agentsdk.ConversationAuthority) ([]byte, error)
+	DeleteAttachmentContent(context.Context, string, agentsdk.ConversationAuthority) error
 }

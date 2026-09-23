@@ -9,8 +9,6 @@ import (
 	toolsdk "github.com/domainry/domainry-tools-sdk"
 	"strings"
 	"time"
-
-	"github.com/domainry/domainry-foundation/modulecapability"
 )
 
 type Error = toolsdk.Error
@@ -239,7 +237,6 @@ type InteractiveRunner interface {
 }
 
 type Binding interface {
-	modulecapability.Binding
 	Descriptor() Descriptor
 	TaskRunner() TaskRunner
 	InteractiveRunner() InteractiveRunner

@@ -1,6 +1,7 @@
 package agentsdk
 
 import (
+	"context"
 	"fmt"
 	"strings"
 )
@@ -85,4 +86,14 @@ type TaskAttachment struct {
 	BodyRef     string `json:"body_ref,omitempty"`
 	Detail      string `json:"detail,omitempty"` // auto, low or high
 	Data        []byte `json:"-"`
+}
+
+// TaskAttachmentStorage is the private host content port for task inputs. id
+// is a reserved task attachment ID and hash is the expected SHA-256. Deletion
+// must be idempotent and permanently fence late puts for that owner/id,
+// including across host restarts. Returned references are opaque.
+type TaskAttachmentStorage interface {
+	PutAttachmentContent(context.Context, string, string, []byte, ConversationAuthority) (string, error)
+	ReadAttachmentContent(context.Context, string, string, ConversationAuthority) ([]byte, error)
+	DeleteAttachmentContent(context.Context, string, ConversationAuthority) error
 }

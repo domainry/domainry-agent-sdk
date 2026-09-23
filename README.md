@@ -18,7 +18,7 @@ Concrete SQL stores remain in the Agent implementation repository; the SDK expos
 durable personal conversations. It is separate from `InteractiveRunner` and its
 legacy session projection. `conversation.go` owns messages, run/event state,
 explicit personal memory, summary and stateless model contracts;
-`conversation_http.go` owns the `/agent/conversations` Action/OpenAPI manifest.
+`conversation_http.go` owns the `/agent/conversations` typed Action/route contract.
 `persistence.ConversationRepository` owns atomic enqueue, lease/fencing, frozen
 model inputs, draft deltas and summary persistence ports. Pure-text Conversation remains supported.
 `ConversationStreamingModel` optionally streams text through a synchronous commit callback;
@@ -28,16 +28,21 @@ readiness without invoking the model. Descriptors may advertise Conversation alo
 task capabilities still require the complete start/poll/cancel trio.
 
 `ConversationAttachmentService` optionally exposes private conversation file
-upload, list, detail, original-byte download and deletion. Hosts supply both
-`ConversationAttachmentStorage` and a current `ConversationAttachmentAuthorizer`;
-these file operations have separate Identity actions and are not model tools.
-Uploads accept a client idempotency key, filename and up to 16 MiB of bytes;
-authority and indexing permissions are never file input. Browser HTTP uses raw
-binary, while trusted SaaS RPC uses bounded base64. Storage must permanently
-fence late writes after deletion, including across restarts. Attachment metadata
-and durable cleanup jobs use the optional persistence attachment port. A stored
-file is not indexed or shared; personal libraries and shared-library membership
-use the separate contract below.
+upload, list, detail, original-byte download and deletion. Conversation-enabled
+hosts supply the shared `modulehost.ArtifactHost` plus a current
+`ConversationAttachmentAuthorizer`; these file operations have separate Identity
+actions and are not model tools. Uploads accept a client idempotency key, filename
+and up to 16 MiB of bytes; authority and indexing permissions are never file
+input. Browser HTTP uses raw binary, while trusted SaaS RPC uses bounded base64.
+Attachment metadata is registered as `owner=agent, kind=attachment` in the
+shared Artifact store, immutable bytes use its ContentWriter, and subject plus
+conversation bindings carry ownership. Terminal Artifact state revokes reads and
+drives idempotent Blob cleanup; the retained index-work queue also carries cleanup
+work, so there is no private attachment metadata or cleanup table. A stored file
+is not indexed or shared; personal libraries and shared-library membership use
+the separate contract below. `TaskAttachmentStorage` remains the private
+content port for task-execution attachments and is not a conversation attachment
+persistence authority.
 
 `KnowledgeLibraryService` optionally manages a unique personal library and
 shared libraries with reader/editor/manager memberships. Hosts inject a

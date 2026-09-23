@@ -31,6 +31,10 @@ type ConversationArtifactExportWrite struct {
 	TTLSeconds    int64                               `json:"ttl_seconds"`
 	ClientID      string                              `json:"client_id"`
 	Export        agentsdk.ConversationArtifactExport `json:"export"`
+	// Content is the exact immutable export prepared by the trusted application.
+	// It is written to deployment-owned blob storage and never persisted in SQL
+	// or echoed into an idempotency receipt.
+	Content []byte `json:"-"`
 }
 
 type ConversationArtifactRepository interface {
@@ -40,6 +44,7 @@ type ConversationArtifactRepository interface {
 	SaveArtifact(context.Context, ConversationArtifactWrite, agentsdk.ConversationAuthority) (ConversationArtifactRecord, error)
 	SaveArtifactExport(context.Context, ConversationArtifactExportWrite, agentsdk.ConversationAuthority) (agentsdk.ConversationArtifactExport, error)
 	ArtifactExport(context.Context, string, agentsdk.ConversationAuthority) (agentsdk.ConversationArtifactExport, error)
+	ArtifactExportContent(context.Context, string, agentsdk.ConversationAuthority) ([]byte, error)
 	RecordArtifactDownload(context.Context, string, agentsdk.ConversationAuthority) (agentsdk.ConversationArtifactExport, error)
 }
 
