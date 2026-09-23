@@ -19,12 +19,9 @@ type Host interface {
 	Migrations() MigrationRegistrar
 }
 
-// ArtifactHost is the optional deployment-owned shared Artifact kernel used by
-// conversation attachments and generated files. Module implementations must
-// fail closed for those capabilities when the host does not provide all three
-// ports; they must not recreate owner-private metadata tables.
+// ArtifactHost supplies only deployment-owned immutable bytes. Agent opens
+// the canonical Foundation metadata store itself against Host.Database.
 type ArtifactHost interface {
-	ArtifactStore() sharedartifact.ManagedStore
 	ArtifactContentStore() sharedartifact.ContentStore
 	ArtifactContentWriter() sharedartifact.ContentWriter
 }
