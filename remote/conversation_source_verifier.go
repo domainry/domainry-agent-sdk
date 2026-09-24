@@ -60,7 +60,7 @@ func (verifier *conversationSourceVerifier) VerifyConversationSources(ctx contex
 	if err := input.Validate(); err != nil {
 		return agentsdk.ConversationSourceVerificationReceipt{}, err
 	}
-	body, err := json.Marshal(input)
+	body, err := json.Marshal(agentsdk.ConversationRPCRequest{Authority: input.Reader, SourceVerification: input})
 	if err != nil {
 		return agentsdk.ConversationSourceVerificationReceipt{}, err
 	}

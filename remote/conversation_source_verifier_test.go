@@ -15,9 +15,13 @@ func TestConversationSourceVerifierUsesBoundedAuthenticatedOwnerRoute(t *testing
 		if request.URL.Path != "/agent/conversation-sources/verify" || request.Method != http.MethodPost || request.Header.Get("Authorization") != "Bearer service-token" {
 			t.Fatalf("unexpected owner request: %s %s authorization=%q", request.Method, request.URL.Path, request.Header.Get("Authorization"))
 		}
-		var input agentsdk.ConversationSourceVerificationRequest
-		if err := json.NewDecoder(request.Body).Decode(&input); err != nil {
+		var envelope agentsdk.ConversationRPCRequest
+		if err := json.NewDecoder(request.Body).Decode(&envelope); err != nil {
 			t.Fatal(err)
+		}
+		input := envelope.SourceVerification
+		if envelope.Authority != input.Reader {
+			t.Fatalf("RPC authority=%+v source reader=%+v", envelope.Authority, input.Reader)
 		}
 		_ = json.NewEncoder(writer).Encode(agentsdk.ConversationSourceVerificationReceipt{
 			WorkspaceID: input.Reader.WorkspaceID, References: input.References, SourceIDs: input.SourceIDs,
