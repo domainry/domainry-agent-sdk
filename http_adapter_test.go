@@ -12,12 +12,12 @@ func TestAgentHTTPAdapterContractOwnsCompleteRouteCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(actions) != 141+len(ConversationToolActions()) {
+	if len(actions) != 140+len(ConversationToolActions()) {
 		t.Fatalf("Agent Action count=%d", len(actions))
 	}
 	roleActions, nonHTTPActions := 0, 0
 	for _, action := range actions {
-		if (action.Key == ConversationActionPrefix+"sources_verify" || action.Key == ConversationActionPrefix+"external_agent_assignments" || action.Key == ConversationActionPrefix+"result_read" || action.Key == ConversationActionPrefix+"trajectory_compare" || action.Key == ConversationActionPrefix+"delegations_result" || action.Key == ConversationActionPrefix+"delegations_publication" || action.Key == ConversationActionPrefix+"delegations_publications" || action.Key == ConversationActionPrefix+"delegations_contract_publication" || action.Key == ConversationActionPrefix+"delegations_contract_candidates" || action.Key == ConversationActionPrefix+"delegations_contract_publications" || action.Key == ConversationActionPrefix+"delegations_artifact" || action.Key == ConversationActionPrefix+"delegations_export") && action.EffectClass != actioncontract.EffectRead {
+		if (action.Key == ConversationActionPrefix+"external_agent_assignments" || action.Key == ConversationActionPrefix+"result_read" || action.Key == ConversationActionPrefix+"trajectory_compare" || action.Key == ConversationActionPrefix+"delegations_result" || action.Key == ConversationActionPrefix+"delegations_publication" || action.Key == ConversationActionPrefix+"delegations_publications" || action.Key == ConversationActionPrefix+"delegations_contract_publication" || action.Key == ConversationActionPrefix+"delegations_contract_candidates" || action.Key == ConversationActionPrefix+"delegations_contract_publications" || action.Key == ConversationActionPrefix+"delegations_artifact" || action.Key == ConversationActionPrefix+"delegations_export") && action.EffectClass != actioncontract.EffectRead {
 			t.Fatal("stored-result read was classified as a mutation")
 		}
 		if action.Permission != nil {
@@ -49,7 +49,7 @@ func TestAgentHTTPAdapterContractOwnsCompleteRouteCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if contract.ContractVersion != AgentHTTPAdapterContractVersion || contract.Owner != "agent" || len(contract.Routes) != 128 {
+	if contract.ContractVersion != AgentHTTPAdapterContractVersion || contract.Owner != "agent" || len(contract.Routes) != 127 {
 		t.Fatalf("Agent HTTP contract=%s owner=%s routes=%d", contract.ContractVersion, contract.Owner, len(contract.Routes))
 	}
 	seen := map[string]bool{}

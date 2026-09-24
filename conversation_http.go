@@ -73,7 +73,6 @@ func ConversationHTTPDefinitions() []ConversationHTTPDefinition {
 		{"messages", "GET /agent/conversations/{conversationID}/messages", nil, ConversationMessagePage{}, []string{"before_seq", "after_seq", "limit"}},
 		{"run", "GET /agent/conversations/{conversationID}/runs/{runID}", nil, ConversationRun{}, nil},
 		{"provenance_publish", "POST /agent/conversation-provenance", ConversationProvenancePublication{}, ConversationProvenanceReceipt{}, nil},
-		{"sources_verify", "POST /agent/conversation-sources/verify", ConversationSourceVerificationRequest{}, ConversationSourceVerificationReceipt{}, nil},
 		{"conversation_fork", "POST /agent/conversations/{conversationID}/runs/{runID}/forks", ConversationForkRequest{}, Conversation{}, nil},
 		{"trajectory_get", "GET /agent/conversations/{conversationID}/runs/{runID}/trajectory", nil, ConversationTrajectory{}, nil},
 		{"trajectory_export", "GET /agent/conversations/{conversationID}/runs/{runID}/trajectory/export", nil, ConversationTrajectoryExport{}, nil},
@@ -137,7 +136,7 @@ func conversationActions() []actioncontract.ActionDefinition {
 	out := []actioncontract.ActionDefinition{}
 	for _, d := range ConversationHTTPDefinitions() {
 		effect, idempotency, audit := actioncontract.EffectWrite, "request_contract", "mutation_audit_required"
-		if strings.HasPrefix(d.Pattern, "GET ") || d.Operation == "sources_verify" || d.Operation == "external_agent_assignments" || d.Operation == "trajectory_compare" || d.Operation == "delegations_execution" || d.Operation == "delegations_execution_result" || d.Operation == "result_read" || d.Operation == "delegations_result" || d.Operation == "delegations_publication" || d.Operation == "delegations_contract_publication" || d.Operation == "delegations_artifact" || d.Operation == "delegations_export" || d.Operation == "agents_match" {
+		if strings.HasPrefix(d.Pattern, "GET ") || d.Operation == "external_agent_assignments" || d.Operation == "trajectory_compare" || d.Operation == "delegations_execution" || d.Operation == "delegations_execution_result" || d.Operation == "result_read" || d.Operation == "delegations_result" || d.Operation == "delegations_publication" || d.Operation == "delegations_contract_publication" || d.Operation == "delegations_artifact" || d.Operation == "delegations_export" || d.Operation == "agents_match" {
 			effect, idempotency, audit = actioncontract.EffectRead, "not_applicable", "owner_read_audit_policy"
 		}
 		capability, label := AgentCapabilityConversation, "Persistent personal conversations"
@@ -201,7 +200,6 @@ func conversationActions() []actioncontract.ActionDefinition {
 // Only authenticated service clients may supply this envelope. The server
 // binds its runtime identity to the API key's configured runtime scope.
 type ConversationRPCRequest struct {
-	SourceVerification    ConversationSourceVerificationRequest    `json:"source_verification,omitempty"`
 	ProvenancePublication ConversationProvenancePublication        `json:"provenance_publication,omitempty"`
 	ExternalAgentQuery    ConversationExternalAgentAssignmentQuery `json:"external_agent_query,omitempty"`
 	ExternalAgentClaim    ConversationExternalAgentClaim           `json:"external_agent_claim,omitempty"`
