@@ -3,21 +3,22 @@ module github.com/domainry/domainry-agent-sdk
 go 1.26.0
 
 require (
-	github.com/domainry/domainry-foundation v0.1.19
-	github.com/domainry/domainry-lifecycle-sdk v0.1.16
+	github.com/domainry/domainry-foundation v0.1.40
+	github.com/domainry/domainry-lifecycle-sdk v0.1.19
 	github.com/domainry/domainry-orm v0.1.31
 )
 
-require github.com/domainry/domainry-identity-sdk v0.1.14
+require github.com/domainry/domainry-identity-sdk v0.1.17
 
 require (
-	github.com/domainry/domainry-report-sdk v0.1.9
-	github.com/domainry/domainry-todo-sdk v0.1.0
-	github.com/domainry/domainry-tools-sdk v0.1.5
+	github.com/domainry/domainry-report-sdk v0.1.15
+	github.com/domainry/domainry-todo-sdk v0.1.4
+	github.com/domainry/domainry-tools-sdk v0.1.8
 )
 
 require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/domainry/domainry-integration-sdk v0.1.10 // indirect
 	go.opentelemetry.io/otel v1.44.0 // indirect
 	go.opentelemetry.io/otel/trace v1.44.0 // indirect
 )
