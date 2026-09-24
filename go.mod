@@ -12,13 +12,13 @@ require github.com/domainry/domainry-identity-sdk v0.1.17
 
 require (
 	github.com/domainry/domainry-report-sdk v0.1.15
-	github.com/domainry/domainry-todo-sdk v0.1.4
-	github.com/domainry/domainry-tools-sdk v0.1.8
+	github.com/domainry/domainry-todo-sdk v0.1.5
+	github.com/domainry/domainry-tools-sdk v0.1.9
 )
 
 require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/domainry/domainry-integration-sdk v0.1.10 // indirect
+	github.com/domainry/domainry-integration-sdk v0.1.11 // indirect
 	go.opentelemetry.io/otel v1.44.0 // indirect
 	go.opentelemetry.io/otel/trace v1.44.0 // indirect
 )
