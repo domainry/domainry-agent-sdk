@@ -25,7 +25,7 @@ func TestConversationSourceVerifierUsesBoundedAuthenticatedOwnerRoute(t *testing
 		}
 		_ = json.NewEncoder(writer).Encode(agentsdk.ConversationSourceVerificationReceipt{
 			WorkspaceID: input.Reader.WorkspaceID, References: input.References, SourceIDs: input.SourceIDs,
-			DecisionIDs: input.DecisionIDs, VerifiedAt: time.Now().UTC(),
+			VerifiedAt: time.Now().UTC(),
 		})
 	}))
 	defer server.Close()
@@ -34,7 +34,7 @@ func TestConversationSourceVerifierUsesBoundedAuthenticatedOwnerRoute(t *testing
 		t.Fatal(err)
 	}
 	request := agentsdk.ConversationSourceVerificationRequest{
-		References: []agentsdk.ConversationRunReference{{ConversationID: "conversation-a", RunID: "run-a"}}, SourceIDs: []string{"source-a"},
+		References: []agentsdk.ConversationRunReference{{ConversationID: "conversation-a", RunID: "run-a"}}, SourceIDs: []string{"conversation://conversation-a/turn/run-a"},
 		Reader: agentsdk.ConversationAuthority{Known: true, RuntimeID: "delivery", WorkspaceID: "workspace-a", UserID: "user-a"},
 	}
 	receipt, err := verifier.VerifyConversationSources(t.Context(), request)
