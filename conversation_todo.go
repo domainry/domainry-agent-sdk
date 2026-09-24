@@ -1,6 +1,6 @@
 package agentsdk
 
-import todo "github.com/domainry/domainry-todo/contract"
+import todo "github.com/domainry/domainry-todo-sdk/contract"
 
 type ConversationTodo = todo.Todo
 type ConversationTodoInput = todo.TodoInput
