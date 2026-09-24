@@ -12,7 +12,7 @@ func TestAgentHTTPAdapterContractOwnsCompleteRouteCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(actions) != 140+len(ConversationToolActions()) {
+	if len(actions) != 141+len(ConversationToolActions()) {
 		t.Fatalf("Agent Action count=%d", len(actions))
 	}
 	roleActions, nonHTTPActions := 0, 0
@@ -49,11 +49,11 @@ func TestAgentHTTPAdapterContractOwnsCompleteRouteCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if contract.ContractVersion != AgentHTTPAdapterContractVersion || contract.Owner != "agent" || len(contract.Routes) != 127 {
+	if contract.ContractVersion != AgentHTTPAdapterContractVersion || contract.Owner != "agent" || len(contract.Routes) != 128 {
 		t.Fatalf("Agent HTTP contract=%s owner=%s routes=%d", contract.ContractVersion, contract.Owner, len(contract.Routes))
 	}
 	seen := map[string]bool{}
-	foundFork, foundExport := false, false
+	foundFork, foundExport, foundProvenance := false, false, false
 	var toolAuthorization actioncontract.Authorization
 	for _, route := range contract.Routes {
 		pattern := route.Pattern()
@@ -66,12 +66,14 @@ func TestAgentHTTPAdapterContractOwnsCompleteRouteCatalog(t *testing.T) {
 			foundFork = true
 		case "POST /agent/delegations/{delegationID}/delivery-export":
 			foundExport = true
+		case "POST /agent/conversation-provenance":
+			foundProvenance = true
 		case "POST /agent/task-tools/invoke":
 			toolAuthorization = route.Action.Authorization
 		}
 	}
-	if !foundFork || !foundExport {
-		t.Fatalf("Agent typed route catalog is missing fork=%t export=%t", foundFork, foundExport)
+	if !foundFork || !foundExport || !foundProvenance {
+		t.Fatalf("Agent typed route catalog is missing fork=%t export=%t provenance=%t", foundFork, foundExport, foundProvenance)
 	}
 	if toolAuthorization.Strategy != actioncontract.AuthorizationSigned || toolAuthorization.PolicyKey != "agent.task_tool_credential" {
 		t.Fatalf("Agent tool callback authorization=%+v", toolAuthorization)

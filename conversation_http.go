@@ -72,6 +72,7 @@ func ConversationHTTPDefinitions() []ConversationHTTPDefinition {
 		{"send", "POST /agent/conversations/{conversationID}/messages", ConversationSend{}, ConversationRun{}, nil},
 		{"messages", "GET /agent/conversations/{conversationID}/messages", nil, ConversationMessagePage{}, []string{"before_seq", "after_seq", "limit"}},
 		{"run", "GET /agent/conversations/{conversationID}/runs/{runID}", nil, ConversationRun{}, nil},
+		{"provenance_publish", "POST /agent/conversation-provenance", ConversationProvenancePublication{}, ConversationProvenanceReceipt{}, nil},
 		{"sources_verify", "POST /agent/conversation-sources/verify", ConversationSourceVerificationRequest{}, ConversationSourceVerificationReceipt{}, nil},
 		{"conversation_fork", "POST /agent/conversations/{conversationID}/runs/{runID}/forks", ConversationForkRequest{}, Conversation{}, nil},
 		{"trajectory_get", "GET /agent/conversations/{conversationID}/runs/{runID}/trajectory", nil, ConversationTrajectory{}, nil},
@@ -152,6 +153,9 @@ func conversationActions() []actioncontract.ActionDefinition {
 		if strings.HasPrefix(d.Operation, "delegations_contract_") {
 			capability, label = AgentCapabilitySourcePublication, "Delegation source publication"
 		}
+		if d.Operation == "provenance_publish" {
+			capability, label = AgentCapabilitySourcePublication, "Conversation source publication"
+		}
 		if strings.HasPrefix(d.Operation, "delegations_execution") {
 			capability, label = AgentCapabilitySourcePublication, "Delegation source publication"
 		}
@@ -198,6 +202,7 @@ func conversationActions() []actioncontract.ActionDefinition {
 // binds its runtime identity to the API key's configured runtime scope.
 type ConversationRPCRequest struct {
 	SourceVerification    ConversationSourceVerificationRequest    `json:"source_verification,omitempty"`
+	ProvenancePublication ConversationProvenancePublication        `json:"provenance_publication,omitempty"`
 	ExternalAgentQuery    ConversationExternalAgentAssignmentQuery `json:"external_agent_query,omitempty"`
 	ExternalAgentClaim    ConversationExternalAgentClaim           `json:"external_agent_claim,omitempty"`
 	ExternalAgentReport   ConversationExternalAgentReport          `json:"external_agent_report,omitempty"`
