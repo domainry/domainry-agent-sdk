@@ -3,6 +3,8 @@ package agentsdk
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"strings"
 	"time"
 
 	actioncontract "github.com/domainry/domainry-foundation/action"
@@ -114,7 +116,14 @@ func PersonalConversationToolDefinition(key, version string) (ConversationToolDe
 }
 
 func ConversationToolActions() []actioncontract.ActionDefinition {
-	out := []actioncontract.ActionDefinition{}
+	out, err := ConversationToolAuthorizationActions(conversationToolDefinitions())
+	if err != nil {
+		panic("compile Agent conversation tool Actions: " + err.Error())
+	}
+	return out
+}
+
+func conversationToolDefinitions() []ConversationToolDefinition {
 	definitions := append(PersonalConversationTools(), KnowledgeConversationTools()...)
 	definitions = append(definitions, ConversationSkillLoadTool())
 	definitions = append(definitions, KnowledgeLibraryCatalogTool(), KnowledgeExtractionTool())
@@ -126,18 +135,59 @@ func ConversationToolActions() []actioncontract.ActionDefinition {
 	definitions = append(definitions, toolsdk.ReportQueryDefinitions()...)
 	definitions = append(definitions, toolsdk.AnalysisDefinitions()...)
 	definitions = append(definitions, toolsdk.MCPDefinitions()...)
-	for _, tool := range append(definitions, ArtifactConversationTools()...) {
+	return append(definitions, ArtifactConversationTools()...)
+}
+
+// ConversationToolAuthorizationActions compiles a product-owned conversation
+// tool catalog into the exact non-HTTP Action and Permission manifest consumed
+// by Runtime authorization. Product tools are bound after the Agent Module is
+// opened, so their authorization definitions must be derived from that bound
+// catalog rather than copied into Runtime configuration.
+func ConversationToolAuthorizationActions(definitions []ConversationToolDefinition) ([]actioncontract.ActionDefinition, error) {
+	out := make([]actioncontract.ActionDefinition, 0, len(definitions))
+	toolKeys := make(map[string]struct{}, len(definitions))
+	actionKeys := make(map[string]struct{}, len(definitions))
+	for index, tool := range definitions {
+		tool.Key = strings.TrimSpace(tool.Key)
+		tool.ActionKey = strings.TrimSpace(tool.ActionKey)
+		if tool.Key == "" {
+			return nil, fmt.Errorf("conversation tool definition %d has an empty key", index)
+		}
+		if _, duplicate := toolKeys[tool.Key]; duplicate {
+			return nil, fmt.Errorf("conversation tool key %q is duplicated", tool.Key)
+		}
+		toolKeys[tool.Key] = struct{}{}
+		if tool.ActionKey != ConversationToolActionPrefix+tool.Key {
+			return nil, fmt.Errorf("conversation tool %q Action key %q must equal %q", tool.Key, tool.ActionKey, ConversationToolActionPrefix+tool.Key)
+		}
+		if _, duplicate := actionKeys[tool.ActionKey]; duplicate {
+			return nil, fmt.Errorf("conversation tool Action key %q is duplicated", tool.ActionKey)
+		}
+		actionKeys[tool.ActionKey] = struct{}{}
+		if tool.Effect != "read" && tool.Effect != "write" {
+			return nil, fmt.Errorf("conversation tool %q has unsupported effect %q", tool.Key, tool.Effect)
+		}
+		if tool.Idempotency != "natural" && tool.Idempotency != "key" && tool.Idempotency != "reconcile" {
+			return nil, fmt.Errorf("conversation tool %q has unsupported idempotency %q", tool.Key, tool.Idempotency)
+		}
+		if tool.Effect == "write" && tool.Idempotency == "natural" {
+			return nil, fmt.Errorf("conversation tool %q cannot use natural idempotency for a write", tool.Key)
+		}
 		effect := actioncontract.EffectRead
 		if tool.Effect == "write" {
 			effect = actioncontract.EffectWrite
 		}
-		out = append(out, actioncontract.ActionDefinition{
+		definition, err := actioncontract.NormalizeDefinition(actioncontract.ActionDefinition{
 			Key: tool.ActionKey, Owner: AgentAuthorizationOwner, SourceKind: "agent_tool", CapabilityKey: "agent.conversation_tools", CapabilityLabel: "Personal work tools", OperationKey: tool.Key, OperationLabel: tool.Key, Label: tool.Key,
 			Exposures: []actioncontract.Exposure{actioncontract.ExposurePublic}, Authorization: actioncontract.Authorization{Strategy: actioncontract.AuthorizationAuthenticated},
 			NonHTTP:     []actioncontract.NonHTTPBinding{{Kind: "sdk", InvocationKey: tool.ActionKey}},
 			EffectClass: effect, RiskLevel: actioncontract.RiskLow, IdempotencyDecision: tool.Idempotency, AuditClass: "agent_conversation_tool", LifecycleStatus: actioncontract.LifecycleActive,
 			Permission: &actioncontract.PermissionDefinition{Key: tool.ActionKey, Owner: AgentAuthorizationOwner, ResourceKey: "agent.conversation_tools", OperationKey: tool.Key, Label: tool.Key, Category: "Personal work tools", LifecycleStatus: actioncontract.LifecycleActive},
 		})
+		if err != nil {
+			return nil, fmt.Errorf("normalize conversation tool Action %q: %w", tool.ActionKey, err)
+		}
+		out = append(out, definition)
 	}
-	return out
+	return out, nil
 }

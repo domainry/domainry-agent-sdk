@@ -417,7 +417,13 @@ func TestContractAndConfigurationFailBeforeIO(t *testing.T) {
 	// owners retain the old tool authorization path; denials never fall back.
 	// E04 adds the trusted tool-owner parallelism declaration. Agent remains the
 	// execution owner and treats empty/legacy declarations as serial.
-	const expected = "cc2c8c87fdc30f8e9eecf8b087a28ad63a5f6d9f9227471e9fd5d3568d44d2d7"
+	// CRM source-owned queries add bounded search text and explicit readable
+	// search fields; server validation remains fail-closed before record IO.
+	// Product-owned write tools now bind the source Action request to the exact
+	// specialized tool action key and version covered by user confirmation.
+	// Source-owned product reads may declare optional projection and search
+	// fields; the business host omits fields unavailable under current policy.
+	const expected = "fe675a299489c1ced8a0516a35b87cf2eb73f5514d6ffb25aef5e121228eed46"
 	if ContractSHA256() != expected {
 		t.Fatalf("public contract changed without compatibility review: %s", ContractSHA256())
 	}

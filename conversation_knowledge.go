@@ -30,9 +30,12 @@ type ConversationCitation struct {
 	ConversationID   string            `json:"conversation_id,omitempty"`
 	LibraryID        string            `json:"library_id,omitempty"`
 	ID               string            `json:"id"`
+	Source           string            `json:"source,omitempty"`
 	Provider         string            `json:"provider"`
 	KBID             string            `json:"kb_id"`
 	Operation        string            `json:"operation"`
+	ObjectKey        string            `json:"object_key,omitempty"`
+	RecordID         string            `json:"record_id,omitempty"`
 	DocumentID       string            `json:"doc_id"`
 	Title            string            `json:"title,omitempty"`
 	URL              string            `json:"url,omitempty"`

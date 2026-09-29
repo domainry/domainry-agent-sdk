@@ -27,6 +27,32 @@ type KnowledgeDocumentUpload struct {
 	Filename string `json:"filename"`
 	Data     []byte `json:"data"`
 }
+
+// KnowledgeDocumentSourceAccess binds a managed document to the source-owned
+// business resource whose current read policy governs the document. It is
+// supplied only through a trusted host port; ordinary library uploads do not
+// accept this value from browser or model input.
+type KnowledgeDocumentSourceAccess struct {
+	Namespace    string `json:"namespace"`
+	ResourceType string `json:"resource_type"`
+	ResourceID   string `json:"resource_id"`
+}
+
+const KnowledgeDocumentSourceNamespaceRuntimeRecord = "domainry.runtime.record.v1"
+
+// KnowledgeDocumentSourceAuthorizer rechecks a persisted source binding for
+// the actual reader. Library membership alone must not make a source-backed
+// document readable after the underlying business resource is revoked.
+type KnowledgeDocumentSourceAuthorizer interface {
+	AuthorizeKnowledgeDocumentSource(context.Context, KnowledgeDocumentSourceAccess, ConversationAuthority) error
+}
+
+// KnowledgeDocumentSourceUploadService is the trusted host-only upload path
+// for source-backed documents. Public Knowledge HTTP uploads continue to use
+// KnowledgeDocumentService and cannot attach a forged source binding.
+type KnowledgeDocumentSourceUploadService interface {
+	UploadKnowledgeDocumentForSource(context.Context, string, KnowledgeDocumentUpload, KnowledgeDocumentSourceAccess, ConversationAuthority) (KnowledgeDocument, error)
+}
 type KnowledgeDocumentPage struct {
 	Items     []KnowledgeDocument `json:"items"`
 	NextAfter string              `json:"next_after,omitempty"`
@@ -58,11 +84,11 @@ type KnowledgeDocumentStorage interface {
 // document passage. It must exclude unrelated/global response data. The Agent
 // applies its local document allowlist before constructing model evidence.
 type KnowledgeDocumentPassage struct {
-	DocumentID string               `json:"doc_id"`
-	Title      string               `json:"title,omitempty"`
-	URL        string               `json:"url,omitempty"`
-	Content    string               `json:"content,omitempty"`
-	Location   *DocumentLocation    `json:"location,omitempty"`
+	DocumentID string                 `json:"doc_id"`
+	Title      string                 `json:"title,omitempty"`
+	URL        string                 `json:"url,omitempty"`
+	Content    string                 `json:"content,omitempty"`
+	Location   *DocumentLocation      `json:"location,omitempty"`
 	Cells      []KnowledgePassageCell `json:"cells,omitempty"`
 }
 type ManagedKnowledgeDocumentSource interface {

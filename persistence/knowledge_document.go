@@ -27,28 +27,30 @@ type KnowledgeDocumentTransferRepository interface {
 	FindKnowledgeDocumentTransfer(context.Context, string, string, KnowledgeDocumentOrigin, agentsdk.ConversationAuthority) (KnowledgeDocumentRecord, bool, error)
 }
 type KnowledgeDocumentRecord struct {
-	DocumentOrigin     *KnowledgeDocumentOrigin       `json:"document_origin,omitempty"`
-	AttachmentOrigin   *KnowledgeAttachmentOrigin     `json:"attachment_origin,omitempty"`
-	Document           agentsdk.KnowledgeDocument     `json:"document"`
-	RequestSHA256      string                         `json:"request_sha256"`
-	SourceID           string                         `json:"source_id"`
-	AccessPolicySHA256 string                         `json:"access_policy_sha256,omitempty"`
-	PutRequestID       string                         `json:"put_request_id,omitempty"`
-	RemoteID           string                         `json:"remote_id"`
-	BodyRef            string                         `json:"body_ref,omitempty"`
-	Actor              agentsdk.ConversationAuthority `json:"actor"`
-	PutStarted         bool                           `json:"put_started"`
-	PutAcknowledged    bool                           `json:"put_acknowledged"`
-	IndexObserved      bool                           `json:"index_observed"`
-	DeleteStarted      bool                           `json:"delete_started"`
-	DeleteAcknowledged bool                           `json:"delete_acknowledged,omitempty"`
+	DocumentOrigin     *KnowledgeDocumentOrigin                `json:"document_origin,omitempty"`
+	AttachmentOrigin   *KnowledgeAttachmentOrigin              `json:"attachment_origin,omitempty"`
+	Document           agentsdk.KnowledgeDocument              `json:"document"`
+	RequestSHA256      string                                  `json:"request_sha256"`
+	SourceID           string                                  `json:"source_id"`
+	AccessPolicySHA256 string                                  `json:"access_policy_sha256,omitempty"`
+	SourceAccess       *agentsdk.KnowledgeDocumentSourceAccess `json:"source_access,omitempty"`
+	PutRequestID       string                                  `json:"put_request_id,omitempty"`
+	RemoteID           string                                  `json:"remote_id"`
+	BodyRef            string                                  `json:"body_ref,omitempty"`
+	Actor              agentsdk.ConversationAuthority          `json:"actor"`
+	PutStarted         bool                                    `json:"put_started"`
+	PutAcknowledged    bool                                    `json:"put_acknowledged"`
+	IndexObserved      bool                                    `json:"index_observed"`
+	DeleteStarted      bool                                    `json:"delete_started"`
+	DeleteAcknowledged bool                                    `json:"delete_acknowledged,omitempty"`
 }
 type KnowledgeDocumentReserve struct {
 	DocumentOrigin                                               *KnowledgeDocumentOrigin   `json:",omitempty"`
 	AttachmentOrigin                                             *KnowledgeAttachmentOrigin `json:",omitempty"`
 	LibraryID, ClientID, Filename, ContentType, SHA256, SourceID string
 	Bytes                                                        int64
-	AccessPolicySHA256                                           string `json:",omitempty"`
+	AccessPolicySHA256                                           string                                  `json:",omitempty"`
+	SourceAccess                                                 *agentsdk.KnowledgeDocumentSourceAccess `json:",omitempty"`
 }
 type KnowledgeDocumentLease struct {
 	RuntimeID   string    `json:"runtime_id"`

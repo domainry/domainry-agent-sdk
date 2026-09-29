@@ -102,7 +102,11 @@ func AgentAuthorizationActions() ([]actioncontract.ActionDefinition, error) {
 		agentTaskExecutionAction(ActionAgentTaskExecutionCancel, "Cancel task execution", actioncontract.EffectWrite, "request_idempotency_key"),
 	}
 	definitions = append(definitions, conversationActions()...)
-	definitions = append(definitions, ConversationToolActions()...)
+	toolDefinitions, err := ConversationToolAuthorizationActions(conversationToolDefinitions())
+	if err != nil {
+		return nil, err
+	}
+	definitions = append(definitions, toolDefinitions...)
 	definitions = append(definitions, ConversationCollaborationActions()...)
 	result := make([]actioncontract.ActionDefinition, 0, len(definitions))
 	for _, definition := range definitions {

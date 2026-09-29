@@ -15,11 +15,23 @@ type ConversationBusinessAction struct {
 	Data      json.RawMessage `json:"data"`
 }
 
+// ConversationBusinessActionIntent is used by trusted product tool adapters.
+// Runtime resolves Version from its current source-owned Action catalog so a
+// specialized tool never accepts a model-supplied execution contract.
+type ConversationBusinessActionIntent struct {
+	ObjectKey string          `json:"object_key"`
+	ActionKey string          `json:"action_key"`
+	RecordID  string          `json:"record_id,omitempty"`
+	Data      json.RawMessage `json:"data"`
+}
+
 // Server-owned execution metadata. None of the identity, idempotency or
 // confirmation fields may be populated from model arguments.
 type ConversationBusinessActionRequest struct {
 	Authority      ConversationAuthority
 	Action         ConversationBusinessAction
+	ToolActionKey  string
+	ToolVersion    string
 	ConversationID string
 	RunID          string
 	CorrelationID  string
@@ -28,6 +40,23 @@ type ConversationBusinessActionRequest struct {
 	IdempotencyKey string
 	Confirmation   *ConversationConfirmation
 	Arguments      string // exact frozen JSON covered by Confirmation.ArgumentsHash
+}
+
+// Optional source-owned resolver used only by trusted product adapters. The
+// returned action includes the current execution version and has already
+// passed the same Action and record-scope authorization used at invocation.
+type ConversationBusinessActionResolver interface {
+	ResolveBusinessAction(context.Context, ConversationBusinessActionIntent, ConversationAuthority) (ConversationBusinessAction, ConversationToolAuthorization, error)
+}
+
+// ConversationBusinessResolvedActionSource is a same-process source-owner
+// boundary for trusted product tool adapters. Unlike the RPC-exposed generic
+// Action source, Arguments contain the specialized tool JSON rather than a
+// model-supplied ConversationBusinessAction. Implementations must still bind
+// the exact persisted confirmation and current resolved Action authorization.
+type ConversationBusinessResolvedActionSource interface {
+	InvokeResolvedBusinessAction(context.Context, ConversationBusinessActionRequest) (ConversationBusinessActionResult, error)
+	ReconcileResolvedBusinessAction(context.Context, ConversationBusinessActionRequest) (ConversationBusinessActionResult, error)
 }
 
 type ConversationBusinessRecordReference struct {

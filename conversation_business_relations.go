@@ -8,14 +8,15 @@ import (
 // Each call follows one published relationship from one currently readable
 // source record. No caller-selected target object or recursive expansion.
 type ConversationBusinessRelatedQuery struct {
-	ObjectKey   string                       `json:"object_key"`
-	RecordID    string                       `json:"record_id"`
-	RelationKey string                       `json:"relation_key"`
-	Fields      []string                     `json:"fields,omitempty"`
-	Filters     []ConversationBusinessFilter `json:"filters,omitempty"`
-	Sort        []ConversationBusinessSort   `json:"sort,omitempty"`
-	PageSize    int                          `json:"page_size,omitempty"`
-	Cursor      string                       `json:"cursor,omitempty"`
+	ObjectKey      string                       `json:"object_key"`
+	RecordID       string                       `json:"record_id"`
+	RelationKey    string                       `json:"relation_key"`
+	Fields         []string                     `json:"fields,omitempty"`
+	OptionalFields []string                     `json:"optional_fields,omitempty"`
+	Filters        []ConversationBusinessFilter `json:"filters,omitempty"`
+	Sort           []ConversationBusinessSort   `json:"sort,omitempty"`
+	PageSize       int                          `json:"page_size,omitempty"`
+	Cursor         string                       `json:"cursor,omitempty"`
 }
 
 type ConversationBusinessRelatedPage struct {
