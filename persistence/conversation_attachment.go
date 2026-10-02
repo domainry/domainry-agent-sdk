@@ -16,11 +16,11 @@ type ConversationAttachmentRecord struct {
 }
 
 type ConversationAttachmentSource struct {
-	Identity           string `json:"identity"`
-	DocID              string `json:"doc_id"`
-	PermissionID       string `json:"permission_id"`
-	AccessPolicySHA256 string `json:"access_policy_sha256,omitempty"`
-	RequestID          string `json:"request_id,omitempty"`
+	Identity              string   `json:"identity"`
+	DocID                 string   `json:"doc_id"`
+	DocumentPermissionIDs []string `json:"document_permission_ids"`
+	AccessPolicySHA256    string   `json:"access_policy_sha256,omitempty"`
+	RequestID             string   `json:"request_id,omitempty"`
 }
 
 // Reserve is idempotent by owner, conversation and ClientID. The same key must

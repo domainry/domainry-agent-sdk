@@ -2,13 +2,26 @@ package agentsdk
 
 import "context"
 
-// Attachment knowledge owns a dedicated physical KB. Every resolved source
-// must use a private scope derived from the trusted runtime/workspace/user/
-// conversation tuple; neither browser nor model may supply upstream ACL IDs.
-// Original bytes go to the Connector. The Agent does not parse or index them.
+// Attachment knowledge owns a dedicated physical KB. DocumentPermissionIDs
+// describe the document visibility grants written upstream. ReadPermissionIDs
+// describe the current authenticated principal identities presented on reads.
+// Neither browser nor model may supply either set. Original bytes go to the
+// Connector. The Agent does not parse or index them.
 type ConversationAttachmentKnowledge interface {
 	AttachmentKnowledgeSourceIdentity() string
-	ResolveAttachmentKnowledge(context.Context, string, ConversationAuthority) (ConversationAttachmentKnowledgeScope, error)
+	ResolveAttachmentKnowledge(context.Context, string, ConversationAuthority, ConversationAttachmentPermissionScope) (ConversationAttachmentKnowledgeScope, error)
+}
+
+// ConversationAttachmentPermissionScope is resolved from the live Identity
+// principal. User and workspace identities come from ConversationAuthority;
+// OrganizationIDs contains every current organization scope the principal may
+// use for KB reads. Raw values never leave the trusted host boundary.
+type ConversationAttachmentPermissionScope struct {
+	OrganizationIDs []string
+}
+
+type ConversationAttachmentPermissionResolver interface {
+	ResolveConversationAttachmentPermissions(context.Context, ConversationAuthority) (ConversationAttachmentPermissionScope, error)
 }
 
 type ConversationAttachmentKnowledgeSource interface {
@@ -18,8 +31,9 @@ type ConversationAttachmentKnowledgeSource interface {
 }
 
 type ConversationAttachmentKnowledgeScope struct {
-	Source       ConversationAttachmentKnowledgeSource
-	PermissionID string
+	Source                ConversationAttachmentKnowledgeSource
+	DocumentPermissionIDs []string
+	ReadPermissionIDs     []string
 }
 
 type ConversationAttachmentKnowledgeBinding struct {
