@@ -43,13 +43,14 @@ type ConversationContextSourceDefinition struct {
 // CurrentInput is the exact current user/task input used for retrieval; it is
 // data for the registered source and does not grant access to any other scope.
 type ConversationContextSourceRequest struct {
-	Authority      ConversationAuthority `json:"authority"`
-	ConversationID string                `json:"conversation_id"`
-	RunID          string                `json:"run_id"`
-	TaskID         string                `json:"task_id,omitempty"`
-	Purpose        string                `json:"purpose"` // reply or step
-	Step           int                   `json:"step,omitempty"`
-	CurrentInput   string                `json:"current_input"`
+	Authority      ConversationAuthority   `json:"authority"`
+	ConversationID string                  `json:"conversation_id"`
+	RunID          string                  `json:"run_id"`
+	TaskID         string                  `json:"task_id,omitempty"`
+	Purpose        string                  `json:"purpose"` // reply or step
+	Step           int                     `json:"step,omitempty"`
+	CurrentInput   string                  `json:"current_input"`
+	References     []ConversationReference `json:"references,omitempty"`
 }
 
 // ConversationContextSourceContent is a current source-owned value. Content
@@ -118,4 +119,11 @@ type ConversationContextSource interface {
 	ConversationContextSourceDefinition() ConversationContextSourceDefinition
 	ReadConversationContext(context.Context, ConversationContextSourceRequest) (ConversationContextSourceContent, error)
 	AuthorizeConversationContext(context.Context, ConversationContextSourceRequest, ConversationContextSourceReference) error
+}
+
+// ConversationContextSourceSelector lets an optional source avoid creating an
+// empty frozen context entry. Selection is deployment-owned and is reevaluated
+// from the same frozen run input before every refreshed model request.
+type ConversationContextSourceSelector interface {
+	IncludeConversationContext(ConversationContextSourceRequest) bool
 }

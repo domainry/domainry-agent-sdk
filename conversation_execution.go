@@ -61,6 +61,71 @@ type ConversationOutcomeInspectionView struct {
 	CheckedAt time.Time `json:"checked_at"`
 }
 
+type ConversationToolProgressView struct {
+	Key       string    `json:"key"`
+	Label     string    `json:"label"`
+	Detail    string    `json:"detail,omitempty"`
+	Index     int       `json:"index"`
+	Total     int       `json:"total"`
+	Status    string    `json:"status"` // planned, started, completed or failed
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// ConversationRunPlanBinding is trusted execution metadata produced by the
+// Agent planner. It lets the execution owner advance a generic run plan from
+// model, tool-progress and tool lifecycle events without teaching the browser
+// any business-specific step names.
+type ConversationRunPlanBinding struct {
+	Kind        string   `json:"kind"` // model, tool_progress or tool
+	Tools       []string `json:"tools,omitempty"`
+	ProgressKey string   `json:"progress_key,omitempty"`
+}
+
+// ConversationRunPlanStep is both the Agent planner declaration and the
+// durable public projection. Planner-provided status/index/timestamps are
+// ignored; the execution owner assigns and advances them through
+// run.plan.created and run.progress events.
+type ConversationRunPlanStep struct {
+	Key       string                     `json:"key"`
+	Label     string                     `json:"label"`
+	Detail    string                     `json:"detail,omitempty"`
+	Optional  bool                       `json:"optional,omitempty"`
+	Binding   ConversationRunPlanBinding `json:"binding"`
+	CallID    string                     `json:"call_id,omitempty"`
+	Index     int                        `json:"index"`
+	Total     int                        `json:"total"`
+	Status    string                     `json:"status"` // planned, started, waiting_user, waiting_confirmation, completed, skipped or failed
+	UpdatedAt time.Time                  `json:"updated_at"`
+}
+
+type ConversationRunPlan struct {
+	Key       string                    `json:"key"`
+	Label     string                    `json:"label"`
+	Steps     []ConversationRunPlanStep `json:"steps"`
+	CreatedAt time.Time                 `json:"created_at"`
+	UpdatedAt time.Time                 `json:"updated_at"`
+}
+
+// ConversationRunPlanningRequest is the trusted, server-assembled input for a
+// replaceable run planner. The planner may decide the visible semantic plan,
+// but it never authorizes a tool, confirms an effect or advances persisted
+// progress. The execution owner validates and normalizes every returned plan.
+type ConversationRunPlanningRequest struct {
+	Authority      ConversationAuthority        `json:"-"`
+	ConversationID string                       `json:"conversation_id"`
+	RunID          string                       `json:"run_id"`
+	Attempt        int                          `json:"attempt"`
+	Input          ConversationModelRequest     `json:"input"`
+	Tools          []ConversationToolDefinition `json:"tools"`
+}
+
+// ConversationRunPlanner is selected by trusted product composition. Products
+// may wrap or replace Agent's default planner without taking ownership of run
+// persistence, progress transitions, authorization or recovery.
+type ConversationRunPlanner interface {
+	PlanConversationRun(context.Context, ConversationRunPlanningRequest) (ConversationRunPlan, error)
+}
+
 type ConversationToolView struct {
 	ParentCallID         string                             `json:"parent_call_id,omitempty"`
 	DispatchIndex        int                                `json:"dispatch_index,omitempty"`
@@ -68,6 +133,7 @@ type ConversationToolView struct {
 	AccessError          string                             `json:"access_error,omitempty"`
 	ReusedFrom           *ConversationResultReference       `json:"reused_from,omitempty"`
 	OutcomeInspection    *ConversationOutcomeInspectionView `json:"outcome_inspection,omitempty"`
+	Progress             []ConversationToolProgressView     `json:"progress,omitempty"`
 	Effect               string                             `json:"effect,omitempty"`     // trusted registration: read or write
 	Completion           string                             `json:"completion,omitempty"` // accepted: invocation acknowledged; business work remains pending
 	Citations            []ConversationCitation             `json:"citations,omitempty"`
@@ -146,6 +212,10 @@ type ConversationConfirmationView struct {
 type ConversationToolDefinition = toolsdk.Definition
 
 type ConversationToolCall = toolsdk.Call
+
+// ConversationSourceAttachment is server-owned provenance for a user
+// attachment frozen into the current Agent run.
+type ConversationSourceAttachment = toolsdk.SourceAttachment
 
 // ConversationParallelReadWidth returns the bounded worker count for a model
 // step. Empty/legacy declarations, mixed batches and every write stay serial.

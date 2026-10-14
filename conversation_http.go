@@ -65,7 +65,7 @@ func ConversationHTTPDefinitions() []ConversationHTTPDefinition {
 		{"external_agent_claim", "POST /agent/external-agents/tasks/{taskID}/claim", ConversationExternalAgentClaim{}, ConversationExternalAgentClaimReceipt{}, nil},
 		{"external_agent_report", "POST /agent/external-agents/tasks/{taskID}/reports", ConversationExternalAgentReport{}, ConversationExternalAgentReportReceipt{}, nil},
 		{"create", "POST /agent/conversations", ConversationCreate{}, Conversation{}, nil},
-		{"list", "GET /agent/conversations", nil, ConversationPage{}, []string{"search", "include_archived", "before_id", "limit"}},
+		{"list", "GET /agent/conversations", nil, ConversationPage{}, []string{"search", "include_archived", "before_id", "limit", "binding_kind", "binding_key"}},
 		{"get", "GET /agent/conversations/{conversationID}", nil, Conversation{}, nil},
 		{"update", "PATCH /agent/conversations/{conversationID}", ConversationUpdate{}, Conversation{}, nil},
 		{"delete", "DELETE /agent/conversations/{conversationID}", nil, map[string]bool{}, []string{"expected_revision"}},

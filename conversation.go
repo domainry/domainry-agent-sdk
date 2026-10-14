@@ -14,22 +14,31 @@ const CapabilityConversationStreamV1 = "conversation.stream.v1"
 type ConversationAuthority = toolsdk.Authority
 
 type Conversation struct {
-	Fork          *ConversationForkOrigin `json:"fork,omitempty"`
-	DelegationID  string                  `json:"delegation_id,omitempty"`
-	AgentID       string                  `json:"agent_id,omitempty"`
-	ID            string                  `json:"id"`
-	Title         string                  `json:"title"`
-	RuntimeID     string                  `json:"runtime_id"`
-	WorkspaceID   string                  `json:"workspace_id"`
-	UserID        string                  `json:"user_id"`
-	Archived      bool                    `json:"archived"`
-	MemoryEnabled bool                    `json:"memory_enabled"`
-	LastSeq       int64                   `json:"last_seq"`
-	ActiveRunID   string                  `json:"active_run_id,omitempty"`
-	SummaryID     string                  `json:"summary_id,omitempty"`
-	Revision      int64                   `json:"revision"`
-	CreatedAt     time.Time               `json:"created_at"`
-	UpdatedAt     time.Time               `json:"updated_at"`
+	Fork          *ConversationForkOrigin     `json:"fork,omitempty"`
+	Binding       *ConversationProductBinding `json:"binding,omitempty"`
+	DelegationID  string                      `json:"delegation_id,omitempty"`
+	AgentID       string                      `json:"agent_id,omitempty"`
+	ID            string                      `json:"id"`
+	Title         string                      `json:"title"`
+	RuntimeID     string                      `json:"runtime_id"`
+	WorkspaceID   string                      `json:"workspace_id"`
+	UserID        string                      `json:"user_id"`
+	Archived      bool                        `json:"archived"`
+	MemoryEnabled bool                        `json:"memory_enabled"`
+	LastSeq       int64                       `json:"last_seq"`
+	ActiveRunID   string                      `json:"active_run_id,omitempty"`
+	SummaryID     string                      `json:"summary_id,omitempty"`
+	Revision      int64                       `json:"revision"`
+	CreatedAt     time.Time                   `json:"created_at"`
+	UpdatedAt     time.Time                   `json:"updated_at"`
+}
+
+// ConversationProductBinding is a deployment-defined stable product location. Kind
+// and Key are opaque to Agent; omitting Binding keeps ordinary conversations
+// unbound. One owner has at most one conversation for a binding.
+type ConversationProductBinding struct {
+	Kind string `json:"kind"`
+	Key  string `json:"key"`
 }
 
 type ConversationMessage struct {
@@ -44,6 +53,7 @@ type ConversationMessage struct {
 	Role             string                     `json:"role"`
 	Content          string                     `json:"content"`
 	ContentBlocks    []ConversationContentBlock `json:"content_blocks,omitempty"`
+	References       []ConversationReference    `json:"references,omitempty"`
 	BackgroundTaskID string                     `json:"background_task_id,omitempty"`
 	CreatedAt        time.Time                  `json:"created_at"`
 }
@@ -64,6 +74,7 @@ type ConversationRun struct {
 	DraftText      string                     `json:"draft_text,omitempty"`
 	DraftBytes     int                        `json:"draft_bytes"`
 	LastEventSeq   int64                      `json:"last_event_seq"`
+	Plan           *ConversationRunPlan       `json:"plan,omitempty"`
 	Steps          []ConversationStepView     `json:"steps,omitempty"`
 	Interaction    *ConversationInteraction   `json:"interaction,omitempty"`
 	LastInputSeq   int64                      `json:"last_input_seq,omitempty"`
@@ -262,10 +273,11 @@ type ConversationMemory struct {
 }
 
 type ConversationCreate struct {
-	AgentID       string `json:"agent_id,omitempty"`
-	ClientID      string `json:"client_id"`
-	Title         string `json:"title,omitempty"`
-	MemoryEnabled bool   `json:"memory_enabled"`
+	AgentID       string                      `json:"agent_id,omitempty"`
+	ClientID      string                      `json:"client_id"`
+	Title         string                      `json:"title,omitempty"`
+	MemoryEnabled bool                        `json:"memory_enabled"`
+	Binding       *ConversationProductBinding `json:"binding,omitempty"`
 }
 type ConversationUpdate struct {
 	ExpectedRevision int64   `json:"expected_revision"`
@@ -284,6 +296,7 @@ type ConversationSend struct {
 	// form. Image inputs contain only attachment_id and optional detail; the
 	// Agent resolves and freezes every other image field.
 	Content    []ConversationContentBlock `json:"content,omitempty"`
+	References []ConversationReference    `json:"references,omitempty"`
 	WriteScope *ConversationWriteScope    `json:"write_scope,omitempty"`
 }
 
@@ -323,6 +336,8 @@ type ConversationQuery struct {
 	IncludeArchived bool   `json:"include_archived,omitempty"`
 	BeforeID        string `json:"before_id,omitempty"`
 	Limit           int    `json:"limit,omitempty"`
+	BindingKind     string `json:"binding_kind,omitempty"`
+	BindingKey      string `json:"binding_key,omitempty"`
 }
 type ConversationMessageQuery struct {
 	BeforeSeq int64 `json:"before_seq,omitempty"`

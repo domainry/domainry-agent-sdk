@@ -1,5 +1,16 @@
 package agentsdk
 
+import "encoding/json"
+
+// ConversationReference is opaque user-selected context attached to one
+// message. Agent bounds and freezes Payload but never interprets Kind. A
+// deployment-owned ConversationContextSource may resolve supported kinds and
+// must reauthorize referenced resources before every model request.
+type ConversationReference struct {
+	Kind    string          `json:"kind"`
+	Payload json.RawMessage `json:"payload"`
+}
+
 // ConversationContentBlock is the additive multimodal message contract. Text
 // fields remain available on legacy messages; when blocks are present their
 // order is authoritative. Image bytes are never accepted from JSON or stored

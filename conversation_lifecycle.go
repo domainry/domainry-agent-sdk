@@ -72,6 +72,7 @@ type ConversationLifecycleInput struct {
 	ClientMessageID string                     `json:"client_message_id,omitempty"`
 	Message         string                     `json:"message,omitempty"`
 	Content         []ConversationContentBlock `json:"content,omitempty"`
+	References      []ConversationReference    `json:"references,omitempty"`
 }
 
 type ConversationLifecycleFailure struct {

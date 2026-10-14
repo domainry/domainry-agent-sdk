@@ -423,7 +423,9 @@ func TestContractAndConfigurationFailBeforeIO(t *testing.T) {
 	// specialized tool action key and version covered by user confirmation.
 	// Source-owned product reads may declare optional projection and search
 	// fields; the business host omits fields unavailable under current policy.
-	const expected = "fe675a299489c1ced8a0516a35b87cf2eb73f5514d6ffb25aef5e121228eed46"
+	// Agent tool results now return bounded, source-owned citations. The RPC
+	// contract carries those receipts without moving authorization into Agent.
+	const expected = "62960727c2c3e3d2aa438ba14aa5bc99e5ac308bb9bb3b2452e97d0a16d9f700"
 	if ContractSHA256() != expected {
 		t.Fatalf("public contract changed without compatibility review: %s", ContractSHA256())
 	}
