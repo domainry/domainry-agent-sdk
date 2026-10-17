@@ -4,16 +4,16 @@ go 1.26.0
 
 require (
 	github.com/domainry/domainry-foundation v0.1.44
-	github.com/domainry/domainry-lifecycle-sdk v0.1.21
+	github.com/domainry/domainry-lifecycle-sdk v0.1.22
 	github.com/domainry/domainry-orm v0.1.33
 )
 
-require github.com/domainry/domainry-identity-sdk v0.1.20
+require github.com/domainry/domainry-identity-sdk v0.1.22
 
 require (
-	github.com/domainry/domainry-report-sdk v0.1.17
-	github.com/domainry/domainry-todo-sdk v0.1.7
-	github.com/domainry/domainry-tools-sdk v0.1.14
+	github.com/domainry/domainry-report-sdk v0.1.18
+	github.com/domainry/domainry-todo-sdk v0.1.8
+	github.com/domainry/domainry-tools-sdk v0.1.15
 )
 
 require (
