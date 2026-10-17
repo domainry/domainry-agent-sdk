@@ -25,6 +25,9 @@ function projectPlan(run: AgentRun, events: AgentRunEvent[]): AgentRunPlan | und
   for (const event of events) {
     const data = event.data || {}
     if (event.type === "run.plan.created" && Array.isArray(data.stages)) {
+      // A durable snapshot is authoritative. Replaying an older creation event
+      // after reconnect must never reset completed progress to planned.
+      if (plan) continue
       const stages = data.stages as Array<Record<string, unknown>>
       plan = {
         key: typeof data.key === "string" ? data.key : "run-plan",
@@ -50,13 +53,22 @@ function projectPlan(run: AgentRun, events: AgentRunEvent[]): AgentRunPlan | und
     const status = typeof data.status === "string" ? data.status : ""
     const step = plan.steps.find((item) => item.key === key)
     if (!step || !status) continue
+    const currentRank = runPlanStatusRank(step.status)
+    const nextRank = runPlanStatusRank(status)
+    if (nextRank < currentRank || currentRank === 2 && status !== step.status) continue
     step.status = status
     if (typeof data.detail === "string" && data.detail) step.detail = data.detail
-    if (typeof data.call_id === "string" && data.call_id) step.call_id = data.call_id
+    if (!step.call_id && typeof data.call_id === "string" && data.call_id) step.call_id = data.call_id
     if (typeof data.updated_at === "string") step.updated_at = data.updated_at
     plan.updated_at = step.updated_at
   }
   return plan
+}
+
+function runPlanStatusRank(status: string) {
+  if (["completed", "failed", "skipped"].includes(status)) return 2
+  if (["started", "waiting_user", "waiting_confirmation"].includes(status)) return 1
+  return 0
 }
 
 function statusRank(status: string) {
@@ -72,6 +84,7 @@ function progressStatusRank(status: string) {
 }
 
 function mergeProgress(current: AgentRunToolProgress | undefined, next: AgentRunToolProgress) {
+  if (current && progressStatusRank(current.status) === 2 && next.status !== current.status) return current
   if (current && progressStatusRank(next.status) < progressStatusRank(current.status)) return current
   return { ...current, ...next }
 }
@@ -89,6 +102,7 @@ function mergeToolProgress(call: AgentRunToolCall, event: AgentRunEvent) {
         key,
         label,
         detail: typeof stage.detail === "string" ? stage.detail : undefined,
+        ...(stage.optional === true ? { optional: true } : {}),
         index: index + 1,
         total: stages.length,
         status: "planned",

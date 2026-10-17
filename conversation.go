@@ -11,6 +11,20 @@ import (
 const CapabilityConversationV1 = "conversation.v1"
 const CapabilityConversationStreamV1 = "conversation.stream.v1"
 
+const (
+	ConversationTitleOriginUnset     = "unset"
+	ConversationTitleOriginGenerated = "generated"
+	ConversationTitleOriginUser      = "user"
+
+	ConversationTitleStatusPending = "pending"
+	ConversationTitleStatusReady   = "ready"
+	ConversationTitleStatusFailed  = "failed"
+
+	ConversationCompactionKindHistorySummary   = "history_summary"
+	ConversationCompactionKindHistoryRebuild   = "history_rebuild"
+	ConversationCompactionKindExecutionContext = "execution_context"
+)
+
 type ConversationAuthority = toolsdk.Authority
 
 type Conversation struct {
@@ -20,6 +34,8 @@ type Conversation struct {
 	AgentID       string                      `json:"agent_id,omitempty"`
 	ID            string                      `json:"id"`
 	Title         string                      `json:"title"`
+	TitleOrigin   string                      `json:"title_origin"`
+	TitleStatus   string                      `json:"title_status"`
 	RuntimeID     string                      `json:"runtime_id"`
 	WorkspaceID   string                      `json:"workspace_id"`
 	UserID        string                      `json:"user_id"`
@@ -41,21 +57,31 @@ type ConversationProductBinding struct {
 	Key  string `json:"key"`
 }
 
+// Generation identifies one public model response, independently of subsequent
+// tools, model steps and retries. Only its own in-flight text may be appended.
+type ConversationMessageGeneration struct {
+	Step         int    `json:"step"`
+	RunAttempt   int    `json:"run_attempt"`
+	ModelAttempt int    `json:"model_attempt"`
+	Status       string `json:"status"` // generating, completed, interrupted
+}
+
 type ConversationMessage struct {
-	PeerEvent        *ConversationPeerEvent     `json:"peer_event,omitempty"`
-	Citations        []ConversationCitation     `json:"citations,omitempty"`    // current, authorized read projection
-	AccessError      string                     `json:"access_error,omitempty"` // read projection; original content is retained internally
-	InteractionID    string                     `json:"interaction_id,omitempty"`
-	ID               string                     `json:"id"`
-	ConversationID   string                     `json:"conversation_id"`
-	RunID            string                     `json:"run_id"`
-	Seq              int64                      `json:"seq"`
-	Role             string                     `json:"role"`
-	Content          string                     `json:"content"`
-	ContentBlocks    []ConversationContentBlock `json:"content_blocks,omitempty"`
-	References       []ConversationReference    `json:"references,omitempty"`
-	BackgroundTaskID string                     `json:"background_task_id,omitempty"`
-	CreatedAt        time.Time                  `json:"created_at"`
+	Generation       *ConversationMessageGeneration `json:"generation,omitempty"`
+	PeerEvent        *ConversationPeerEvent         `json:"peer_event,omitempty"`
+	Citations        []ConversationCitation         `json:"citations,omitempty"`    // current, authorized read projection
+	AccessError      string                         `json:"access_error,omitempty"` // read projection; original content is retained internally
+	InteractionID    string                         `json:"interaction_id,omitempty"`
+	ID               string                         `json:"id"`
+	ConversationID   string                         `json:"conversation_id"`
+	RunID            string                         `json:"run_id"`
+	Seq              int64                          `json:"seq"`
+	Role             string                         `json:"role"`
+	Content          string                         `json:"content"`
+	ContentBlocks    []ConversationContentBlock     `json:"content_blocks,omitempty"`
+	References       []ConversationReference        `json:"references,omitempty"`
+	BackgroundTaskID string                         `json:"background_task_id,omitempty"`
+	CreatedAt        time.Time                      `json:"created_at"`
 }
 
 type ConversationRun struct {
@@ -70,19 +96,23 @@ type ConversationRun struct {
 	UserSeq            int64                          `json:"user_seq"`
 	AssistantMessageID string                         `json:"assistant_message_id,omitempty"`
 	Attempt            int                            `json:"attempt"`
-	// Draft belongs to Attempt and is never included in conversation history.
-	DraftText      string                     `json:"draft_text,omitempty"`
-	DraftBytes     int                        `json:"draft_bytes"`
-	LastEventSeq   int64                      `json:"last_event_seq"`
-	Plan           *ConversationRunPlan       `json:"plan,omitempty"`
-	Steps          []ConversationStepView     `json:"steps,omitempty"`
-	Interaction    *ConversationInteraction   `json:"interaction,omitempty"`
-	LastInputSeq   int64                      `json:"last_input_seq,omitempty"`
-	WriteScope     *ConversationWriteScope    `json:"write_scope,omitempty"`
-	BackgroundTask *ConversationTaskExecution `json:"background_task,omitempty"`
-	Model          string                     `json:"model,omitempty"`
-	Usage          map[string]any             `json:"usage,omitempty"`
-	ModelAttempts  []ConversationModelAttempt `json:"model_attempts,omitempty"`
+	// Draft belongs to this attempt. Its public text is also retained under the
+	// stable DraftMessageID; a retry allocates a new message, never erasing it.
+	DraftText       string                         `json:"draft_text,omitempty"`
+	DraftBytes      int                            `json:"draft_bytes"`
+	DraftMessageID  string                         `json:"draft_message_id,omitempty"`
+	DraftMessageSeq int64                          `json:"draft_message_seq,omitempty"`
+	LastEventSeq    int64                          `json:"last_event_seq"`
+	Plan            *ConversationRunPlan           `json:"plan,omitempty"`
+	Steps           []ConversationStepView         `json:"steps,omitempty"`
+	Interaction     *ConversationInteraction       `json:"interaction,omitempty"`
+	LastInputSeq    int64                          `json:"last_input_seq,omitempty"`
+	WriteScope      *ConversationWriteScope        `json:"write_scope,omitempty"`
+	BackgroundTask  *ConversationTaskExecution     `json:"background_task,omitempty"`
+	Model           string                         `json:"model,omitempty"`
+	Usage           map[string]any                 `json:"usage,omitempty"`
+	ModelAttempts   []ConversationModelAttempt     `json:"model_attempts,omitempty"`
+	Compactions     []ConversationCompactionNotice `json:"compactions,omitempty"`
 	// Context is the safe projection of the initial frozen model input. Tool
 	// execution steps expose their refreshed projections independently.
 	Context *ConversationContextView `json:"context,omitempty"`
@@ -114,12 +144,33 @@ type ConversationRunMetrics struct {
 	AuthorizationChecks      int   `json:"authorization_checks"`
 	ConfirmationDecisions    int   `json:"confirmation_decisions"`
 	ContextCompactions       int   `json:"context_compactions"`
+	HistoryCompactions       int   `json:"history_compactions"`
+	HistoryRebuilds          int   `json:"history_rebuilds"`
+	CompactedMessages        int   `json:"compacted_messages"`
+	RebuiltMessages          int   `json:"rebuilt_messages"`
 	CompactedResults         int   `json:"compacted_results"`
 	CompactedIntervals       int   `json:"compacted_intervals"`
 	PeakContextBytes         int   `json:"peak_context_bytes"`
 	ContextLimitBytes        int   `json:"context_limit_bytes"`
 	CacheReadInputTokens     int64 `json:"cache_read_input_tokens"`
 	CacheCreationInputTokens int64 `json:"cache_creation_input_tokens"`
+}
+
+// ConversationCompactionNotice is the safe, durable explanation of one
+// context reduction. It deliberately exposes counts and byte sizes, not the
+// generated summary or omitted tool content.
+type ConversationCompactionNotice struct {
+	Kind        string    `json:"kind"` // history_summary, history_rebuild or execution_context
+	Step        int       `json:"step"`
+	FromSeq     int64     `json:"from_seq,omitempty"`
+	ThroughSeq  int64     `json:"through_seq,omitempty"`
+	Messages    int       `json:"messages,omitempty"`
+	Results     int       `json:"results,omitempty"`
+	Intervals   int       `json:"intervals,omitempty"`
+	BeforeBytes int       `json:"before_bytes"`
+	AfterBytes  int       `json:"after_bytes"`
+	Rebuild     bool      `json:"rebuild,omitempty"`
+	OccurredAt  time.Time `json:"occurred_at"`
 }
 
 // ConversationExecutionLimits are deployment-owned admission limits. Agent
@@ -196,6 +247,10 @@ type ConversationEvent struct {
 type ConversationSummary struct {
 	Sources        *ConversationSources       `json:"sources,omitempty"`
 	Rebuild        bool                       `json:"rebuild,omitempty"` // trusted worker rebuilds from original messages after source access changes
+	FromSeq        int64                      `json:"from_seq"`
+	Messages       int                        `json:"messages"`
+	BeforeBytes    int                        `json:"before_bytes"`
+	AfterBytes     int                        `json:"after_bytes"`
 	ID             string                     `json:"id"`
 	ConversationID string                     `json:"conversation_id"`
 	PreviousID     string                     `json:"previous_id,omitempty"`

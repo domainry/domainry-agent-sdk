@@ -2,7 +2,9 @@ import type {
   AgentAttachment,
   AgentContentBlock,
   AgentConversation,
-  AgentConversationBinding,
+  AgentConversationCreate,
+  AgentConversationListOptions,
+  AgentConversationUpdate,
   AgentDirectory,
   AgentInteractionResponse,
   AgentMessage,
@@ -27,23 +29,44 @@ export type AgentClientTransport = {
 export function createAgentClient(transport: AgentClientTransport) {
   return {
     directory: () => transport.request<AgentDirectory>("/agent/agents"),
-    listConversations(beforeId?: string, binding?: AgentConversationBinding) {
-      const query = new URLSearchParams({ limit: "50" })
-      if (beforeId) query.set("before_id", beforeId)
-      if (binding) {
-        query.set("binding_kind", binding.kind)
-        query.set("binding_key", binding.key)
+    listConversations(options: AgentConversationListOptions = {}) {
+      const query = new URLSearchParams({ limit: String(options.limit ?? 50) })
+      if (options.beforeId) query.set("before_id", options.beforeId)
+      if (options.search) query.set("search", options.search)
+      if (options.includeArchived) query.set("include_archived", "true")
+      if (options.binding) {
+        query.set("binding_kind", options.binding.kind)
+        query.set("binding_key", options.binding.key)
       }
       return transport.request<{ items: AgentConversation[]; next_cursor?: string }>(`/agent/conversations?${query.toString()}`)
     },
-    createConversation(clientId: string, title = "New conversation", binding?: AgentConversationBinding) {
-      return transport.request<AgentConversation>("/agent/conversations", { method: "POST", body: JSON.stringify({ client_id: clientId, title, ...(binding ? { binding } : {}) }) })
+    createConversation(input: AgentConversationCreate) {
+      return transport.request<AgentConversation>("/agent/conversations", {
+        method: "POST",
+        body: JSON.stringify({
+          client_id: input.clientId,
+          ...(input.title ? { title: input.title } : {}),
+          ...(input.agentId ? { agent_id: input.agentId } : {}),
+          ...(input.memoryEnabled ? { memory_enabled: true } : {}),
+          ...(input.binding ? { binding: input.binding } : {}),
+        }),
+      })
     },
     getConversation: (conversationId: string) => transport.request<AgentConversation>(`/agent/conversations/${encodeURIComponent(conversationId)}`),
-    updateConversationTitle(conversationId: string, title: string, revision: number) {
+    updateConversation(conversationId: string, input: AgentConversationUpdate) {
       return transport.request<AgentConversation>(`/agent/conversations/${encodeURIComponent(conversationId)}`, {
-        method: "PATCH", body: JSON.stringify({ title, expected_revision: revision }),
+        method: "PATCH",
+        body: JSON.stringify({
+          expected_revision: input.expectedRevision,
+          ...(input.title !== undefined ? { title: input.title } : {}),
+          ...(input.archived !== undefined ? { archived: input.archived } : {}),
+          ...(input.memoryEnabled !== undefined ? { memory_enabled: input.memoryEnabled } : {}),
+        }),
       })
+    },
+    deleteConversation(conversationId: string, expectedRevision: number) {
+      const query = new URLSearchParams({ expected_revision: String(expectedRevision) })
+      return transport.request<void>(`/agent/conversations/${encodeURIComponent(conversationId)}?${query.toString()}`, { method: "DELETE" })
     },
     listMessages(conversationId: string, beforeSeq?: number) {
       const query = new URLSearchParams({ limit: "100" })

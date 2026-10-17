@@ -106,6 +106,38 @@ catalog and permission manifest for implemented read tools. Registering an
 Action does not grant it to a user. These additions do not add mandatory methods
 to existing `Binding`, `ConversationModel` or `ConversationRepository` ports.
 
+Products opt into durable ordered Run Plans through the Agent module's public
+`ConversationOptions.RunPlanningEnabled`. Products that need domain-specific
+wording or conditional ordering instead implement the public
+`ConversationRunPlanner` and pass it through `ConversationOptions.RunPlanner`;
+they do not modify Agent internals. The planner receives owned copies of the
+current authorized model input and tool catalog. Agent validates the returned
+bindings, persists the plan, owns all progress transitions and recovery, and
+still performs tool authorization, confirmation and reconciliation itself. A
+tool can expose its own source-owned stages through
+`toolsdk.Definition.ExecutionPlan` and report `started`, `completed`, optional
+`skipped`, or `failed` with `toolsdk.ReportProgress`.
+
+The `browser` package is the matching framework-neutral client. It exposes
+owner-scoped conversation create/list/search/update/archive/delete APIs,
+attachment upload/index APIs, interaction responses, `streamRun` with
+`Last-Event-ID`, and `projectAgentRun` for reducing durable Run Plan and tool
+progress events. Product frontends own layout and wording; they must not infer
+business steps from message text or poll active runs.
+
+Conversation create accepts no title. The durable record then reports
+`title_origin=unset` and `title_status=pending`; accepting the first usable user
+message generates the title atomically with enqueue and reports
+`title_origin=generated`. An explicit create title or later rename reports
+`title_origin=user` and is never replaced by automatic naming. List search
+matches the normalized title and durable user-authored message history without
+returning message snippets. Assistant output is deliberately excluded because
+its protected sources must be reauthorized at history-read time; a list search
+must not become a revocation side channel. Archived records remain excluded
+unless the caller requests them. Browser products localize only the temporary
+empty-title label and must not detect title state by comparing localized
+placeholder strings.
+
 `ConversationTrajectoryService` is an optional completed-run inspection and
 forking extension. It projects the exact saved model-visible messages, complete
 public tool definitions, recorded model responses, tool calls/results, context

@@ -61,13 +61,28 @@ type ConversationOutcomeInspectionView struct {
 	CheckedAt time.Time `json:"checked_at"`
 }
 
+const (
+	ConversationRunPlanBindingModel        = "model"
+	ConversationRunPlanBindingTool         = "tool"
+	ConversationRunPlanBindingToolProgress = "tool_progress"
+
+	ConversationRunProgressPlanned             = "planned"
+	ConversationRunProgressStarted             = "started"
+	ConversationRunProgressWaitingUser         = "waiting_user"
+	ConversationRunProgressWaitingConfirmation = "waiting_confirmation"
+	ConversationRunProgressCompleted           = "completed"
+	ConversationRunProgressSkipped             = "skipped"
+	ConversationRunProgressFailed              = "failed"
+)
+
 type ConversationToolProgressView struct {
 	Key       string    `json:"key"`
 	Label     string    `json:"label"`
 	Detail    string    `json:"detail,omitempty"`
+	Optional  bool      `json:"optional,omitempty"`
 	Index     int       `json:"index"`
 	Total     int       `json:"total"`
-	Status    string    `json:"status"` // planned, started, completed or failed
+	Status    string    `json:"status"` // planned, started, completed, skipped or failed
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
@@ -76,7 +91,7 @@ type ConversationToolProgressView struct {
 // model, tool-progress and tool lifecycle events without teaching the browser
 // any business-specific step names.
 type ConversationRunPlanBinding struct {
-	Kind        string   `json:"kind"` // model, tool_progress or tool
+	Kind        string   `json:"kind"` // ConversationRunPlanBinding* constant
 	Tools       []string `json:"tools,omitempty"`
 	ProgressKey string   `json:"progress_key,omitempty"`
 }
@@ -94,7 +109,7 @@ type ConversationRunPlanStep struct {
 	CallID    string                     `json:"call_id,omitempty"`
 	Index     int                        `json:"index"`
 	Total     int                        `json:"total"`
-	Status    string                     `json:"status"` // planned, started, waiting_user, waiting_confirmation, completed, skipped or failed
+	Status    string                     `json:"status"` // ConversationRunProgress* constant
 	UpdatedAt time.Time                  `json:"updated_at"`
 }
 
@@ -153,6 +168,8 @@ type ConversationToolView struct {
 	DurationMilliseconds int64                              `json:"duration_ms"`
 }
 type ConversationStepView struct {
+	MessageID              string                   `json:"message_id,omitempty"`
+	MessageSeq             int64                    `json:"message_seq,omitempty"`
 	Number                 int                      `json:"number"`
 	Attempt                int                      `json:"attempt"`
 	Status                 string                   `json:"status"`

@@ -1,13 +1,41 @@
 export type AgentConversation = {
   id: string
   title: string
-  revision?: number
+  title_origin: "unset" | "generated" | "user"
+  title_status: "pending" | "ready" | "failed"
+  archived: boolean
+  memory_enabled: boolean
+  revision: number
   active_run_id?: string
   binding?: AgentConversationBinding
+  created_at: string
   updated_at: string
 }
 
 export type AgentConversationBinding = { kind: string; key: string }
+
+export type AgentConversationListOptions = {
+  beforeId?: string
+  search?: string
+  includeArchived?: boolean
+  limit?: number
+  binding?: AgentConversationBinding
+}
+
+export type AgentConversationCreate = {
+  clientId: string
+  title?: string
+  agentId?: string
+  memoryEnabled?: boolean
+  binding?: AgentConversationBinding
+}
+
+export type AgentConversationUpdate = {
+  expectedRevision: number
+  title?: string
+  archived?: boolean
+  memoryEnabled?: boolean
+}
 
 export type AgentCitation = {
   id: string
@@ -40,6 +68,7 @@ export type AgentReference = {
 }
 
 export type AgentMessage = {
+  generation?: { step: number; run_attempt: number; model_attempt: number; status: "generating" | "completed" | "interrupted" }
   id: string
   run_id?: string
   seq: number
@@ -81,6 +110,7 @@ export type AgentRunPlanStep = {
   label: string
   detail?: string
   optional?: boolean
+  binding?: { kind: "model" | "tool" | "tool_progress"; tools?: string[]; progress_key?: string }
   call_id?: string
   index: number
   total: number
@@ -100,9 +130,10 @@ export type AgentRunToolProgress = {
   key: string
   label: string
   detail?: string
+  optional?: boolean
   index: number
   total: number
-  status: "planned" | "started" | "completed" | "failed" | string
+  status: "planned" | "started" | "completed" | "skipped" | "failed" | string
   updated_at?: string
 }
 
@@ -120,6 +151,10 @@ export type AgentRunToolCall = {
 }
 
 export type AgentRunStep = {
+  message_id?: string
+  message_seq?: number
+  attempt?: number
+  model_attempts?: number
   number: number
   status: string
   calls: AgentRunToolCall[]
@@ -230,6 +265,8 @@ export type AgentRun = {
   attempt?: number
   draft_text?: string
   draft_bytes?: number
+  draft_message_id?: string
+  draft_message_seq?: number
   last_event_seq?: number
   model_attempts?: AgentRunModelAttempt[]
 }

@@ -425,7 +425,9 @@ func TestContractAndConfigurationFailBeforeIO(t *testing.T) {
 	// fields; the business host omits fields unavailable under current policy.
 	// Agent tool results now return bounded, source-owned citations. The RPC
 	// contract carries those receipts without moving authorization into Agent.
-	const expected = "62960727c2c3e3d2aa438ba14aa5bc99e5ac308bb9bb3b2452e97d0a16d9f700"
+	// Tool progress can mark a declared conditional stage as optional so product
+	// extensions do not need to report work that their branch did not perform.
+	const expected = "63732fafddb2204f8ccce1e480d051a4af47627ccd8047cc4caf961e74597b17"
 	if ContractSHA256() != expected {
 		t.Fatalf("public contract changed without compatibility review: %s", ContractSHA256())
 	}
