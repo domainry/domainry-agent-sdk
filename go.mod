@@ -11,15 +11,15 @@ require (
 require github.com/domainry/domainry-identity-sdk v0.1.27
 
 require (
-	github.com/domainry/domainry-knowledge-sdk v0.1.20
+	github.com/domainry/domainry-knowledge-sdk v0.1.21
 	github.com/domainry/domainry-report-sdk v0.1.22
-	github.com/domainry/domainry-tools-sdk v0.1.20
+	github.com/domainry/domainry-tools-sdk v0.1.21
 )
 
 require (
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/domainry/domainry-integration-sdk v0.1.19 // indirect
+	github.com/domainry/domainry-integration-sdk v0.1.20 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
