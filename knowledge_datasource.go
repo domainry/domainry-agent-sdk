@@ -12,7 +12,7 @@ type KnowledgeDatasourceSource interface {
 	ConversationKnowledgeSource
 	ManagedKnowledgeDocumentSource
 	KnowledgeDocumentAccessPolicySource
-	KnowledgeDocumentSizeLimitSource
+	KnowledgeDocumentIndexLimitSource
 }
 type KnowledgeDatasourceCatalog interface {
 	KnowledgeDatasources(context.Context, KnowledgeDocumentStorageScope) ([]KnowledgeDatasourceDefinition, error)

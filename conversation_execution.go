@@ -296,6 +296,10 @@ type ConversationModelOutputLimiter interface {
 }
 
 type ConversationStepRequest struct {
+	// ConversationID is server-owned provider routing metadata. It is populated
+	// immediately before a model call and is never persisted or sent in the
+	// protocol request body.
+	ConversationID string `json:"-"`
 	// ContextSources records server-assembled context provenance for later authorization checks.
 	ContextSources    []ConversationRunReference    `json:"context_sources,omitempty"`
 	Context           *ConversationContextManifest  `json:"context,omitempty"`

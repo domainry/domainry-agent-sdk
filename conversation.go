@@ -456,6 +456,10 @@ type ConversationModelMessage struct {
 	ContextSourceKey string `json:"-"`
 }
 type ConversationModelRequest struct {
+	// ConversationID is server-owned provider routing metadata. It is populated
+	// immediately before a model call and is never persisted or sent in the
+	// protocol request body.
+	ConversationID    string                        `json:"-"`
 	Sources           *ConversationSources          `json:"sources,omitempty"` // server-only; providers receive Messages
 	Context           *ConversationContextManifest  `json:"context,omitempty"`
 	ContextWindow     *ConversationContextWindow    `json:"context_window,omitempty"`

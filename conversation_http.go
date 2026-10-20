@@ -87,22 +87,6 @@ func ConversationHTTPDefinitions() []ConversationHTTPDefinition {
 		{"memories_list", "GET /agent/conversations/memories", nil, []ConversationMemory{}, nil},
 		{"memories_write", "PUT /agent/conversations/memories/{memoryID}", ConversationMemoryWrite{}, ConversationMemory{}, nil},
 		{"memories_delete", "DELETE /agent/conversations/memories/{memoryID}", nil, map[string]bool{}, []string{"expected_revision"}},
-		{"libraries_create", "POST /agent/knowledge-libraries", KnowledgeLibraryCreate{}, KnowledgeLibrary{}, nil},
-		{"libraries_list", "GET /agent/knowledge-libraries", nil, KnowledgeLibraryPage{}, []string{"after", "limit"}},
-		{"libraries_get", "GET /agent/knowledge-libraries/{libraryID}", nil, KnowledgeLibrary{}, nil},
-		{"libraries_sources", "GET /agent/knowledge-libraries/{libraryID}/sources", nil, KnowledgeLibrarySources{}, []string{"after", "limit"}},
-		{"libraries_bind_source", "PUT /agent/knowledge-libraries/{libraryID}/source", KnowledgeLibrarySourceWrite{}, KnowledgeLibrary{}, nil},
-		{"libraries_update", "PATCH /agent/knowledge-libraries/{libraryID}", KnowledgeLibraryUpdate{}, KnowledgeLibrary{}, nil},
-		{"libraries_members", "GET /agent/knowledge-libraries/{libraryID}/members", nil, KnowledgeLibraryMembers{}, []string{"after", "limit"}},
-		{"libraries_set_member", "PUT /agent/knowledge-libraries/{libraryID}/members/{userID}", KnowledgeLibraryMemberWrite{}, KnowledgeLibrary{}, nil},
-		{"libraries_remove_member", "DELETE /agent/knowledge-libraries/{libraryID}/members/{userID}", nil, KnowledgeLibrary{}, []string{"expected_revision"}},
-		{"documents_transfer", "POST /agent/knowledge-libraries/{libraryID}/documents/from-document", KnowledgeDocumentTransfer{}, KnowledgeDocument{}, nil},
-		{"documents_import_attachment", "POST /agent/knowledge-libraries/{libraryID}/documents/from-attachment", KnowledgeAttachmentImport{}, KnowledgeDocument{}, nil},
-		{"documents_list", "GET /agent/knowledge-libraries/{libraryID}/documents", nil, KnowledgeDocumentPage{}, []string{"after", "limit"}},
-		{"documents_upload", "POST /agent/knowledge-libraries/{libraryID}/documents", KnowledgeDocumentUpload{}, KnowledgeDocument{}, []string{"client_id", "filename"}},
-		{"documents_get", "GET /agent/knowledge-libraries/{libraryID}/documents/{documentID}", nil, KnowledgeDocument{}, nil},
-		{"documents_download", "GET /agent/knowledge-libraries/{libraryID}/documents/{documentID}/content", nil, KnowledgeDocumentDownload{}, nil},
-		{"documents_delete", "DELETE /agent/knowledge-libraries/{libraryID}/documents/{documentID}", nil, KnowledgeDocument{}, []string{"expected_revision"}},
 		{"attachments_list", "GET /agent/conversations/{conversationID}/attachments", nil, ConversationAttachmentPage{}, []string{"after", "limit"}},
 		{"attachments_upload", "POST /agent/conversations/{conversationID}/attachments", ConversationAttachmentUpload{}, ConversationAttachment{}, []string{"client_id", "filename"}},
 		{"attachments_get", "GET /agent/conversations/{conversationID}/attachments/{attachmentID}", nil, ConversationAttachment{}, nil},
@@ -173,21 +157,12 @@ func conversationActions() []actioncontract.ActionDefinition {
 		if d.Operation == "conversation_fork" || strings.HasPrefix(d.Operation, "trajectory_") {
 			capability, label = AgentCapabilityTrajectories, "Conversation forks and trajectories"
 		}
-		if strings.HasPrefix(d.Operation, "libraries_") || strings.HasPrefix(d.Operation, "documents_") {
-			capability, label = AgentCapabilityKnowledgeLibraries, "Knowledge libraries"
-		}
 		action := agentPrincipalAction(ConversationActionPrefix+d.Operation, capability, label, d.Operation, d.Pattern, effect, idempotency, audit)
 		// Todo HTTP commands are explicit user requests; the service authorizes
 		// their registered personal tool permission before accessing storage.
 
 		if d.Operation == "respond" {
 			action.Permission = ConversationInteractionPermission()
-		}
-		if permission := KnowledgeLibraryPermission(d.Operation); permission != nil {
-			action.Permission = permission
-		}
-		if permission := KnowledgeDocumentPermission(d.Operation); permission != nil {
-			action.Permission = permission
 		}
 		if permission := ConversationAttachmentPermission(d.Operation); permission != nil {
 			action.Permission = permission

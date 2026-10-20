@@ -9,21 +9,23 @@ import (
 // caller's membership, not a transferable grant. Personal libraries cannot be
 // given members. Creating a library does not configure a remote knowledge source.
 type KnowledgeLibrary struct {
-	KnowledgeConfigured bool      `json:"knowledge_configured,omitempty"` // Host binding exists; not a remote health/indexing assertion.
-	DocumentsConfigured bool      `json:"documents_configured,omitempty"` // Host enables document management; not an Identity permission grant.
-	DocumentMaxBytes    int64     `json:"document_max_bytes,omitempty"`   // Current upload limit; existing downloads retain their recorded size.
-	SourcesManageable   bool      `json:"sources_manageable,omitempty"`   // Live resource and Identity permission decision.
-	DatasourceKey       string    `json:"datasource_key,omitempty"`       // Selected host catalog key, never a credential or ACL.
-	ID                  string    `json:"id"`
-	Kind                string    `json:"kind"` // personal, shared
-	Name                string    `json:"name"`
-	Description         string    `json:"description"`
-	OwnerUserID         string    `json:"owner_user_id"`
-	Role                string    `json:"role"` // reader, editor, manager
-	Archived            bool      `json:"archived"`
-	Revision            int64     `json:"revision"`
-	CreatedAt           time.Time `json:"created_at"`
-	UpdatedAt           time.Time `json:"updated_at"`
+	KnowledgeConfigured   bool                      `json:"knowledge_configured,omitempty"`     // Host binding exists; not a remote health/indexing assertion.
+	DocumentsConfigured   bool                      `json:"documents_configured,omitempty"`     // Host enables document management; not an Identity permission grant.
+	DocumentMaxBytes      int64                     `json:"document_max_bytes,omitempty"`       // Maximum immutable original accepted by Knowledge storage.
+	DocumentIndexMaxBytes int64                     `json:"document_index_max_bytes,omitempty"` // Maximum payload accepted by one indexing-provider write.
+	DocumentFormats       []KnowledgeDocumentFormat `json:"document_formats,omitempty"`         // Connector-owned Builder format and processing capabilities.
+	SourcesManageable     bool                      `json:"sources_manageable,omitempty"`       // Live resource and Identity permission decision.
+	DatasourceKey         string                    `json:"datasource_key,omitempty"`           // Selected host catalog key, never a credential or ACL.
+	ID                    string                    `json:"id"`
+	Kind                  string                    `json:"kind"` // personal, shared
+	Name                  string                    `json:"name"`
+	Description           string                    `json:"description"`
+	OwnerUserID           string                    `json:"owner_user_id"`
+	Role                  string                    `json:"role"` // reader, editor, manager
+	Archived              bool                      `json:"archived"`
+	Revision              int64                     `json:"revision"`
+	CreatedAt             time.Time                 `json:"created_at"`
+	UpdatedAt             time.Time                 `json:"updated_at"`
 }
 type KnowledgeLibraryCreate struct {
 	ClientID    string `json:"client_id"`

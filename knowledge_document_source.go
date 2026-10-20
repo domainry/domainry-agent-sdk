@@ -1,6 +1,9 @@
 package agentsdk
 
-import "context"
+import (
+	"context"
+	"io"
+)
 
 // KnowledgeDocumentSource is a trusted host port for document lifecycle work,
 // not a model tool or browser API. The application must first authorize the
@@ -26,11 +29,16 @@ type KnowledgeDocumentDeleteRecoverySource interface {
 type KnowledgeDocumentContent struct {
 	DocumentID string
 	Filename   string
-	Data       []byte
+	Bytes      int64
+	SHA256     string
+	Content    io.Reader
 	// RequestID is created and durably recorded by the application before any
 	// write. It identifies one logical command, not permission to retry it.
 	RequestID          string
 	AccessPolicySHA256 string
+	// PermissionIDs is a trusted per-document projection override. It is used
+	// for source-owned page ACL tokens and is never populated from public input.
+	PermissionIDs []string
 }
 
 // A source may expose an immutable access-policy fingerprint independently of
@@ -41,10 +49,32 @@ type KnowledgeDocumentAccessPolicySource interface {
 	KnowledgeDocumentAccessPolicySHA256() string
 }
 
-// Optional upstream limit, checked before reserving a document or starting a
-// write. A host may impose a smaller limit than the generic attachment limit.
-type KnowledgeDocumentSizeLimitSource interface {
-	KnowledgeDocumentMaxBytes() int64
+// Optional upstream indexing limit. This is deliberately separate from the
+// original-file storage limit: Knowledge may retain, preview and download an
+// original that is larger than one provider indexing request.
+type KnowledgeDocumentIndexLimitSource interface {
+	KnowledgeDocumentIndexMaximumBytes() int64
+}
+
+// KnowledgeDocumentFormat describes one exact Builder parser route and its
+// route-specific processing budgets. The Connector transport ceiling is a
+// source-wide value exposed separately by KnowledgeDocumentIndexLimitSource.
+// Asset/enrichment/analysis budgets are not whole-file upload limits.
+type KnowledgeDocumentFormat struct {
+	Extension              string `json:"extension"`
+	ContentType            string `json:"content_type"`
+	ParserRoute            string `json:"parser_route"`
+	BuilderMaxBytes        int64  `json:"builder_max_bytes,omitempty"`
+	AssetMaxBytes          int64  `json:"asset_max_bytes,omitempty"`
+	EnrichmentMaxBytes     int64  `json:"enrichment_max_bytes,omitempty"`
+	AnalysisOutputMaxBytes int64  `json:"analysis_output_max_bytes,omitempty"`
+}
+
+// KnowledgeDocumentFormatSource is the authoritative file capability surface
+// supplied by the configured Connector. Knowledge must not duplicate a
+// Builder format table in its application layer.
+type KnowledgeDocumentFormatSource interface {
+	KnowledgeDocumentFormats() []KnowledgeDocumentFormat
 }
 
 type KnowledgeDocumentState struct {

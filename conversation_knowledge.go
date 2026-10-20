@@ -6,7 +6,7 @@ import (
 )
 
 // Knowledge remains an optional host service. Data preserves the upstream
-// response for legacy sources. Managed libraries provide an explicitly mapped,
+// response for a configured default source. Managed libraries provide an explicitly mapped,
 // locally authorized document projection instead; callers must not infer a
 // provider-specific document schema.
 // ScopeSHA256 binds a receipt to its source configuration and authenticated owner.
@@ -18,6 +18,10 @@ type ConversationKnowledgeResult struct {
 	Operation      string                 `json:"operation"`
 	Query          string                 `json:"query,omitempty"`
 	DocumentID     string                 `json:"doc_id,omitempty"`
+	SearchTopK     int                    `json:"search_top_k,omitempty"`
+	SearchMode     string                 `json:"search_mode,omitempty"`
+	SearchReranked *bool                  `json:"search_reranked,omitempty"`
+	SearchDegraded string                 `json:"search_degraded_reason,omitempty"`
 	ScopeSHA256    string                 `json:"scope_sha256"`
 	Citations      []ConversationCitation `json:"citations,omitempty"`
 	Data           json.RawMessage        `json:"data"`
@@ -37,6 +41,13 @@ type ConversationCitation struct {
 	ObjectKey        string            `json:"object_key,omitempty"`
 	RecordID         string            `json:"record_id,omitempty"`
 	DocumentID       string            `json:"doc_id"`
+	PageID           string            `json:"page_id,omitempty"`
+	PageVersion      int64             `json:"page_version,omitempty"`
+	ChunkID          string            `json:"chunk_id,omitempty"`
+	DocumentVersion  int64             `json:"document_version,omitempty"`
+	ContentSHA256    string            `json:"content_sha256,omitempty"`
+	SourceRevision   string            `json:"source_revision,omitempty"`
+	Score            float64           `json:"score,omitempty"`
 	Title            string            `json:"title,omitempty"`
 	URL              string            `json:"url,omitempty"`
 	Excerpt          string            `json:"excerpt,omitempty"`

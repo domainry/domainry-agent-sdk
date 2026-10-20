@@ -27,7 +27,7 @@ type ConversationAttachmentPermissionResolver interface {
 type ConversationAttachmentKnowledgeSource interface {
 	ManagedKnowledgeDocumentSource
 	KnowledgeDocumentAccessPolicySource
-	KnowledgeDocumentSizeLimitSource
+	KnowledgeDocumentIndexLimitSource
 }
 
 type ConversationAttachmentKnowledgeScope struct {
