@@ -57,7 +57,7 @@ func (b *boundary) modulePrincipal(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		current, ok := identity.RequestIdentityFromContext(r.Context())
 		if !ok {
-			writeCode(w, 401, "agent.web.login_required")
+			writeCode(w, r, 401, "agent.web.login_required")
 			return
 		}
 		principal := current.Principal
@@ -65,7 +65,7 @@ func (b *boundary) modulePrincipal(next http.Handler) http.Handler {
 			SubjectID: identity.SubjectID(principal.UserID), RoleKey: principal.RoleKey,
 		})
 		if err != nil || !resolved.Principal.Known || resolved.Principal.MustChangePassword || resolved.Principal.WorkspaceID != principal.WorkspaceID || resolved.Principal.UserID != principal.UserID {
-			writeCode(w, 403, "agent.web.module_access_denied")
+			writeCode(w, r, 403, "agent.web.module_access_denied")
 			return
 		}
 		// The cookie projection alone contains no action/data policy. Resolve the

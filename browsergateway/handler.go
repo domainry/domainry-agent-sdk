@@ -17,6 +17,7 @@ import (
 
 	agentsdk "github.com/domainry/domainry-agent-sdk"
 	actioncontract "github.com/domainry/domainry-foundation/action"
+	"github.com/domainry/domainry-foundation/httpresponse"
 	"github.com/domainry/domainry-foundation/modulehttp"
 	identitysdk "github.com/domainry/domainry-identity-sdk"
 	"github.com/domainry/domainry-identity-sdk/browsergateway"
@@ -154,7 +155,7 @@ func NewHandler(options Options) (http.Handler, error) {
 		unsafe := r.Method != http.MethodGet && r.Method != http.MethodHead
 		landing := r.Method == http.MethodGet && navigation[r.URL.Path]
 		if r.Host != origin.Host || (!landing && r.Header.Get("Sec-Fetch-Site") == "cross-site") || (!landing && r.Header.Get("Origin") != "" && r.Header.Get("Origin") != options.Origin) || (unsafe && r.Header.Get("Origin") != options.Origin) {
-			writeCode(w, 403, "agent.web.origin_required")
+			writeCode(w, r, 403, "agent.web.origin_required")
 			return
 		}
 		mux.ServeHTTP(w, r)
@@ -164,7 +165,7 @@ func NewHandler(options Options) (http.Handler, error) {
 func (b *boundary) forwardConversation(w http.ResponseWriter, r *http.Request) {
 	identity, ok := identitysdk.RequestIdentityFromContext(r.Context())
 	if !ok || identity.AccessToken == "" {
-		writeCode(w, 401, "agent.web.login_required")
+		writeCode(w, r, 401, "agent.web.login_required")
 		return
 	}
 	// A browser session establishes the owner, but does not contain the host's
@@ -218,13 +219,13 @@ func (b *boundary) authenticated(requireScope bool, next http.Handler) http.Hand
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		identity, err := b.identity(r)
 		if err != nil {
-			writeCode(w, 401, "agent.web.login_required")
+			writeCode(w, r, 401, "agent.web.login_required")
 			return
 		}
 		p := identity.Principal
 		if requireScope {
 			if p.MustChangePassword {
-				writeCode(w, 403, "agent.web.password_change_required")
+				writeCode(w, r, 403, "agent.web.password_change_required")
 				return
 			}
 			scope := r.Header.Get("X-Agent-Scope")
@@ -233,7 +234,7 @@ func (b *boundary) authenticated(requireScope bool, next http.Handler) http.Hand
 				scope = r.URL.Query().Get("scope")
 			}
 			if scope != Scope(b.options.RuntimeID, p.WorkspaceID, p.UserID) {
-				writeCode(w, 409, "agent.web.identity_changed")
+				writeCode(w, r, 409, "agent.web.identity_changed")
 				return
 			}
 			if stream {
@@ -295,7 +296,7 @@ func (b *boundary) cookieTransport(next http.HandlerFunc) http.Handler {
 			_ = json.Unmarshal(body["expires_at"], &expires)
 			deadline, err := time.Parse(time.RFC3339, expires)
 			if err != nil || token == "" || !deadline.After(time.Now()) {
-				writeCode(w, 502, "agent.web.session_invalid")
+				writeCode(w, r, 502, "agent.web.session_invalid")
 				return
 			}
 			http.SetCookie(w, &http.Cookie{Name: b.accessCookie(), Value: token, Path: "/", HttpOnly: true, Secure: b.secure, SameSite: http.SameSiteStrictMode, Expires: deadline})
@@ -330,8 +331,8 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(body)
 }
-func writeCode(w http.ResponseWriter, status int, code string) {
-	writeJSON(w, status, map[string]string{"code": code})
+func writeCode(w http.ResponseWriter, r *http.Request, status int, code string) {
+	httpresponse.WriteError(w, r, httpresponse.Failure{Status: status, Code: code})
 }
 
 func (b *boundary) accessCookie() string {
