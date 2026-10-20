@@ -13,6 +13,7 @@ import (
 	"time"
 
 	sdk "github.com/domainry/domainry-agent-sdk"
+	"github.com/domainry/domainry-foundation/telemetry"
 )
 
 type ClientOptions struct {
@@ -66,7 +67,7 @@ func Open(ctx context.Context, o ClientOptions) (*Client, error) {
 	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	client.Jar = nil
 	u.Path = ""
-	c := &Client{base: u.String(), token: o.Token, descriptor: newDescriptor(o.Scope, o.ExpectedSourceIdentity), http: &client}
+	c := &Client{base: u.String(), token: o.Token, descriptor: newDescriptor(o.Scope, o.ExpectedSourceIdentity), http: telemetry.InstrumentHTTPClient(&client, "github.com/domainry/domainry-agent-sdk/businessrpc")}
 	raw, status, err := c.do(ctx, "GET", CapabilitiesPath, nil)
 	var got Descriptor
 	if err != nil || status != 200 || decode(raw, &got) != nil || got != c.descriptor {
@@ -80,6 +81,7 @@ func (c *Client) do(ctx context.Context, method, path string, body []byte) ([]by
 	if err := ctx.Err(); err != nil {
 		return nil, 0, failure("unavailable")
 	}
+	ctx = telemetry.WithHTTPClientOperation(ctx, "agent.business_rpc")
 	r, err := http.NewRequestWithContext(ctx, method, c.base+path, bytes.NewReader(body))
 	if err != nil {
 		return nil, 0, failure("unavailable")
