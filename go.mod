@@ -11,9 +11,9 @@ require (
 require github.com/domainry/domainry-identity-sdk v0.1.27
 
 require (
-	github.com/domainry/domainry-knowledge-sdk v0.1.19
-	github.com/domainry/domainry-report-sdk v0.1.21
-	github.com/domainry/domainry-tools-sdk v0.1.19
+	github.com/domainry/domainry-knowledge-sdk v0.1.20
+	github.com/domainry/domainry-report-sdk v0.1.22
+	github.com/domainry/domainry-tools-sdk v0.1.20
 )
 
 require (
