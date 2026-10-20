@@ -6,6 +6,11 @@ import (
 	knowledgesdk "github.com/domainry/domainry-knowledge-sdk"
 )
 
+const (
+	KnowledgeDocumentMaximumBytes     = knowledgesdk.KnowledgeDocumentMaximumBytes
+	KnowledgeDocumentUploadChunkBytes = knowledgesdk.KnowledgeDocumentUploadChunkBytes
+)
+
 type KnowledgeDocument = knowledgesdk.KnowledgeDocument
 type KnowledgeDocumentUpload = knowledgesdk.KnowledgeDocumentUpload
 type KnowledgeDocumentUploadChunk = knowledgesdk.KnowledgeDocumentUploadChunk
