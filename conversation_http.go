@@ -12,7 +12,6 @@ const AgentCapabilitySourcePublication = "agent.source_publication"
 const AgentCapabilityConversation = "agent.conversations"
 const AgentCapabilityTrajectories = "agent.conversation_trajectories"
 const AgentCapabilityBackgroundTasks = "agent.background_tasks"
-const AgentCapabilityPersonalTodos = "agent.personal_todos"
 const AgentCapabilityArtifacts = "agent.artifacts"
 const AgentCapabilityKnowledgeLibraries = "agent.knowledge_libraries"
 const AgentCapabilityAttachments = "agent.conversation_attachments"
@@ -95,11 +94,6 @@ func ConversationHTTPDefinitions() []ConversationHTTPDefinition {
 		{"attachments_check_index", "POST /agent/conversations/{conversationID}/attachments/{attachmentID}/index/check", nil, ConversationAttachment{}, []string{"expected_revision"}},
 		{"attachments_delete", "DELETE /agent/conversations/{conversationID}/attachments/{attachmentID}", nil, ConversationAttachment{}, []string{"expected_revision"}},
 		{"documents_import_attachment", "POST /agent/knowledge-libraries/{libraryID}/documents/import-attachment", KnowledgeAttachmentImport{}, KnowledgeDocument{}, nil},
-		{"todos_list", "GET /agent/todos", nil, ConversationTodoPage{}, []string{"query", "status", "source_conversation_id", "batch_id", "cursor", "limit"}},
-		{"todos_get", "GET /agent/todos/{todoID}", nil, ConversationTodo{}, nil},
-		{"todos_create", "POST /agent/todos", ConversationTodoCreate{}, ConversationTodoBatch{}, nil},
-		{"todos_update", "PATCH /agent/todos/{todoID}", ConversationTodoUpdate{}, ConversationTodo{}, nil},
-		{"todos_delete", "DELETE /agent/todos/{todoID}", ConversationTodoDelete{}, map[string]bool{}, nil},
 		{"tasks_list", "GET /agent/conversation-tasks", nil, ConversationTaskPage{}, []string{"query", "status", "source_conversation_id", "cursor", "limit"}},
 		{"tasks_get", "GET /agent/conversation-tasks/{taskID}", nil, ConversationTaskDetail{}, nil},
 		{"tasks_plans", "GET /agent/conversation-tasks/{taskID}/plans", nil, ConversationPlanHistory{}, []string{"before_version"}},
@@ -143,9 +137,6 @@ func conversationActions() []actioncontract.ActionDefinition {
 		if strings.HasPrefix(d.Operation, "delegations_execution") {
 			capability, label = AgentCapabilitySourcePublication, "Delegation source publication"
 		}
-		if strings.HasPrefix(d.Operation, "todos_") {
-			capability, label = AgentCapabilityPersonalTodos, "Personal todos"
-		}
 		if strings.HasPrefix(d.Operation, "tasks_") {
 			capability, label = AgentCapabilityBackgroundTasks, "Durable background tasks"
 		}
@@ -162,9 +153,6 @@ func conversationActions() []actioncontract.ActionDefinition {
 			capability, label = AgentCapabilityTrajectories, "Conversation forks and trajectories"
 		}
 		action := agentPrincipalAction(ConversationActionPrefix+d.Operation, capability, label, d.Operation, d.Pattern, effect, idempotency, audit)
-		// Todo HTTP commands are explicit user requests; the service authorizes
-		// their registered personal tool permission before accessing storage.
-
 		if d.Operation == "respond" {
 			action.Permission = ConversationInteractionPermission()
 		}
@@ -236,11 +224,6 @@ type ConversationRPCRequest struct {
 	ArtifactCreate        ConversationArtifactCreate               `json:"artifact_create,omitempty"`
 	ArtifactEdit          ConversationArtifactEdit                 `json:"artifact_edit,omitempty"`
 	ArtifactExport        ConversationArtifactExportRequest        `json:"artifact_export,omitempty"`
-	TodoID                string                                   `json:"todo_id,omitempty"`
-	TodoQuery             ConversationTodoQuery                    `json:"todo_query,omitempty"`
-	TodoCreate            ConversationTodoCreate                   `json:"todo_create,omitempty"`
-	TodoUpdate            ConversationTodoUpdate                   `json:"todo_update,omitempty"`
-	TodoDelete            ConversationTodoDelete                   `json:"todo_delete,omitempty"`
 	TaskID                string                                   `json:"task_id,omitempty"`
 	TaskQuery             ConversationTaskQuery                    `json:"task_query,omitempty"`
 	TaskAgreementUpdate   ConversationTaskAgreementUpdate          `json:"task_agreement_update,omitempty"`

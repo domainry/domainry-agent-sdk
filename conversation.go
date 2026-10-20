@@ -361,13 +361,12 @@ type ConversationSend struct {
 // memories for this request; it does not authorize unrelated business effects.
 type ConversationWriteScope struct {
 	PersonalMemory    bool `json:"personal_memory"`
-	PersonalTodos     bool `json:"personal_todos,omitempty"`
 	PersonalArtifacts bool `json:"personal_artifacts,omitempty"`
 	BackgroundTasks   bool `json:"background_tasks,omitempty"`
 }
 
-// Grants are resource-specific. A memory grant must never authorize a todo or
-// an unrelated future write tool merely because it is registered as personal.
+// Grants are resource-specific. A memory grant must never authorize an
+// unrelated future write tool merely because it is registered as personal.
 func (s *ConversationWriteScope) Allows(tool string) bool {
 	if s == nil {
 		return false
@@ -375,8 +374,6 @@ func (s *ConversationWriteScope) Allows(tool string) bool {
 	switch tool {
 	case "memory_save", "memory_forget":
 		return s.PersonalMemory
-	case "todo_create", "todo_update", "todo_delete":
-		return s.PersonalTodos
 	case "artifact_create", "artifact_edit", "artifact_export":
 		return s.PersonalArtifacts
 	case "task_start", "task_cancel", "task_resume", "task_update", "task_review", "plan_update", "completion_submit":

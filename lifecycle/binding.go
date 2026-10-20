@@ -13,7 +13,7 @@ type Binding interface {
 // SubjectBinding is optional because a remote Agent deployment may expose
 // retention before it exposes data-subject execution. Embedded hosts use the
 // returned owner handlers as opaque Lifecycle ports; they do not receive an
-// Agent, Todo, or Knowledge repository.
+// Agent or business-module repositories.
 type SubjectBinding interface {
 	LifecycleSubjectHandlers() []lifecyclecontract.SubjectExecutionHandler
 }

@@ -83,7 +83,7 @@ func PersonalConversationTools() []ConversationToolDefinition {
 	out = append(out, BackgroundTaskQueryConversationTools()...)
 	out = append(out, BackgroundTaskControlConversationTools()...)
 	out = append(out, ConversationCollaborationTools()...)
-	return append(out, personalTodoTools()...)
+	return out
 }
 
 // PersonalConversationToolDefinition returns the exact persisted contract used

@@ -325,7 +325,7 @@ from its frozen step. An authenticated `scope=listed_operations` response explic
 approves that list; an empty scope approves only the current call. Agent persists
 an exact per-call confirmation for each listed operation in the same transaction,
 with `AuthorizationID` linking the original grouped consent. New calls, changed
-arguments and other runs never inherit it. Personal memory, todo or artifact write scopes do not authorize
+arguments and other runs never inherit it. Personal memory or artifact write scopes do not authorize
 business mutations. A confirmed request cannot satisfy an additional host approval
 requirement by itself.
 

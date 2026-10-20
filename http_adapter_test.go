@@ -12,7 +12,7 @@ func TestAgentHTTPAdapterContractOwnsCompleteRouteCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(actions) != 125+len(ConversationToolActions()) {
+	if len(actions) != 120+len(ConversationToolActions()) {
 		t.Fatalf("Agent Action count=%d tool Actions=%d", len(actions), len(ConversationToolActions()))
 	}
 	roleActions, nonHTTPActions := 0, 0
@@ -49,7 +49,7 @@ func TestAgentHTTPAdapterContractOwnsCompleteRouteCatalog(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if contract.ContractVersion != AgentHTTPAdapterContractVersion || contract.Owner != "agent" || len(contract.Routes) != 112 {
+	if contract.ContractVersion != AgentHTTPAdapterContractVersion || contract.Owner != "agent" || len(contract.Routes) != 107 {
 		t.Fatalf("Agent HTTP contract=%s owner=%s routes=%d", contract.ContractVersion, contract.Owner, len(contract.Routes))
 	}
 	seen := map[string]bool{}
