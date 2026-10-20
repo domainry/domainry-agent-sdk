@@ -94,6 +94,7 @@ func ConversationHTTPDefinitions() []ConversationHTTPDefinition {
 		{"attachments_index", "POST /agent/conversations/{conversationID}/attachments/{attachmentID}/index", nil, ConversationAttachment{}, []string{"expected_revision"}},
 		{"attachments_check_index", "POST /agent/conversations/{conversationID}/attachments/{attachmentID}/index/check", nil, ConversationAttachment{}, []string{"expected_revision"}},
 		{"attachments_delete", "DELETE /agent/conversations/{conversationID}/attachments/{attachmentID}", nil, ConversationAttachment{}, []string{"expected_revision"}},
+		{"documents_import_attachment", "POST /agent/knowledge-libraries/{libraryID}/documents/import-attachment", KnowledgeAttachmentImport{}, KnowledgeDocument{}, nil},
 		{"todos_list", "GET /agent/todos", nil, ConversationTodoPage{}, []string{"query", "status", "source_conversation_id", "batch_id", "cursor", "limit"}},
 		{"todos_get", "GET /agent/todos/{todoID}", nil, ConversationTodo{}, nil},
 		{"todos_create", "POST /agent/todos", ConversationTodoCreate{}, ConversationTodoBatch{}, nil},
@@ -154,6 +155,9 @@ func conversationActions() []actioncontract.ActionDefinition {
 		if strings.HasPrefix(d.Operation, "attachments_") {
 			capability, label = AgentCapabilityAttachments, "Private conversation attachments"
 		}
+		if d.Operation == "documents_import_attachment" {
+			capability, label = AgentCapabilityKnowledgeLibraries, "Agent and Knowledge document exchange"
+		}
 		if d.Operation == "conversation_fork" || strings.HasPrefix(d.Operation, "trajectory_") {
 			capability, label = AgentCapabilityTrajectories, "Conversation forks and trajectories"
 		}
@@ -166,6 +170,9 @@ func conversationActions() []actioncontract.ActionDefinition {
 		}
 		if permission := ConversationAttachmentPermission(d.Operation); permission != nil {
 			action.Permission = permission
+		}
+		if d.Operation == "documents_import_attachment" {
+			action.Permission = &actioncontract.PermissionDefinition{Key: ConversationActionPrefix + d.Operation, Owner: AgentAuthorizationOwner, ResourceKey: AgentCapabilityConversation, OperationKey: d.Operation, Label: "Import a private attachment into Knowledge", Category: "Agent and Knowledge document exchange", LifecycleStatus: actioncontract.LifecycleActive}
 		}
 		out = append(out, action)
 	}
