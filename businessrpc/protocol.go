@@ -186,5 +186,5 @@ func newDescriptor(scope Scope, source string) Descriptor {
 	return Descriptor{ProtocolVersion: ProtocolVersion, ContractSHA256: ContractSHA256(), Scope: scope, SourceIdentity: source}
 }
 func failure(class string) error {
-	return &sdk.Error{Class: class, Code: "agent.business_host." + class}
+	return &sdk.Error{Class: sdk.ErrorClass(class), Code: "agent.business_host." + class}
 }

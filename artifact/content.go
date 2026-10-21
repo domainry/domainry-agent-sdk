@@ -24,7 +24,7 @@ const InlineBytes = 32 * 1024
 var columnKey = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_]{0,63}$`)
 var decimal = regexp.MustCompile(`^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$`)
 
-func failure(class, code string) error {
+func failure(class agentsdk.ErrorClass, code string) error {
 	return &agentsdk.Error{Class: class, Code: "agent.conversation." + code}
 }
 func text(value string, max int) bool {

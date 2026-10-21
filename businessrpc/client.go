@@ -130,7 +130,7 @@ func (c *Client) call(ctx context.Context, op string, a sdk.ConversationAuthorit
 			class := result.Error.Class
 			want := map[string]int{"bad_request": 400, "forbidden": 403, "not_found": 404, "conflict": 409, "unavailable": 503}[class]
 			if want == status {
-				return &sdk.Error{Class: class, Code: safeCode(result.Error.Code, class)}
+				return &sdk.Error{Class: sdk.ErrorClass(class), Code: safeCode(result.Error.Code, class)}
 			}
 		}
 		return failure("unavailable")

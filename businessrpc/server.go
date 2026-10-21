@@ -123,7 +123,7 @@ func writeFailure(w http.ResponseWriter, err error) {
 	if errors.As(err, &coded) {
 		switch coded.Class {
 		case "bad_request", "forbidden", "not_found", "conflict":
-			class = coded.Class
+			class = string(coded.Class)
 		}
 	}
 	code := "agent.business_host." + class

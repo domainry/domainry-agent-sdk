@@ -12,6 +12,17 @@ import (
 )
 
 type Error = toolsdk.Error
+type ErrorClass = toolsdk.ErrorClass
+
+const (
+	ErrorClassBadRequest  = toolsdk.ErrorClassBadRequest
+	ErrorClassForbidden   = toolsdk.ErrorClassForbidden
+	ErrorClassNotFound    = toolsdk.ErrorClassNotFound
+	ErrorClassConflict    = toolsdk.ErrorClassConflict
+	ErrorClassRateLimited = toolsdk.ErrorClassRateLimited
+	ErrorClassUnavailable = toolsdk.ErrorClassUnavailable
+	ErrorClassInternal    = toolsdk.ErrorClassInternal
+)
 
 const ProtocolVersionV1 = "domainry-agent-protocol-v1"
 
