@@ -28,7 +28,7 @@ func (b *boundary) externalIdentity(r *http.Request) (identity.RequestIdentity, 
 	if err != nil {
 		return identity.RequestIdentity{}, err
 	}
-	if !p.Known || p.WorkspaceID == "" || p.UserID == "" || p.User.ID != p.UserID {
+	if !p.Known || p.WorkspaceID == "" || p.UserID == "" || p.User.UserID != p.UserID {
 		return identity.RequestIdentity{}, errors.New("external principal is incomplete")
 	}
 	return identity.RequestIdentity{AccessToken: credential, Principal: p}, nil

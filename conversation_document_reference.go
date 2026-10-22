@@ -12,7 +12,7 @@ type ConversationDocumentReference struct {
 	SHA256     string `json:"sha256"`
 }
 
-var sharedLibraryID = regexp.MustCompile(`^lib_[a-f0-9]{32}$`)
+var sharedLibraryID = regexp.MustCompile(`^klib_[a-f0-9]{32}$`)
 var sharedDocumentID = regexp.MustCompile(`^kdoc_[a-f0-9]{32}$`)
 var sharedDocumentHash = regexp.MustCompile(`^[a-f0-9]{64}$`)
 

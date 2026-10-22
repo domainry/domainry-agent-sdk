@@ -205,7 +205,7 @@ func (b *boundary) identity(r *http.Request) (identitysdk.RequestIdentity, error
 	if err != nil {
 		return result, err
 	}
-	if session.WorkspaceID != identitysdk.WorkspaceID(b.options.WorkspaceID) || session.SubjectID == "" || session.User.ID != string(session.SubjectID) || session.WorkspaceID != verified.WorkspaceID || session.SubjectID != verified.SubjectID {
+	if session.WorkspaceID != identitysdk.WorkspaceID(b.options.WorkspaceID) || session.SubjectID == "" || session.User.UserID != string(session.SubjectID) || session.WorkspaceID != verified.WorkspaceID || session.SubjectID != verified.SubjectID {
 		return result, errors.New("Identity session scope mismatch")
 	}
 	// This projection is sufficient for browser owner/scope checks. Tool and
