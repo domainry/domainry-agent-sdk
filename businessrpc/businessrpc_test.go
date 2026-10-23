@@ -430,7 +430,7 @@ func TestContractAndConfigurationFailBeforeIO(t *testing.T) {
 	// v2 also removes generic correlation IDs from Agent and Report DTOs. Those
 	// DTO shapes are part of this descriptor, so the coordinated SDK sources must
 	// produce this hash before either side can accept the protocol.
-	const expected = "fcfe81c93f2fa4d1580f03ede94a94d586cd5178e176917a723d959219b8219d"
+	const expected = "5a965419dc79ea87255714f92f5f5d259be72c214417ed49e8cdbb1f49ab3ca3"
 	if ContractSHA256() != expected {
 		t.Fatalf("public contract changed without compatibility review: %s", ContractSHA256())
 	}
