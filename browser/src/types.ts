@@ -252,7 +252,6 @@ export type AgentRun = {
   access_error?: string
   interaction?: AgentInteraction
   model?: string
-  correlation_id?: string
   metrics?: AgentRunMetrics
   audit?: AgentRunAuditEvent[]
   audit_complete?: boolean

@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	ProtocolVersion  = "domainry-agent-business-host-v1"
+	ProtocolVersion  = "domainry-agent-business-host-v2"
 	CapabilitiesPath = "/_domainry/agent-business/v1/capabilities"
 	CallPath         = "/_domainry/agent-business/v1/call"
 	MaxRequestBytes  = 1 << 20

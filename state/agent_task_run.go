@@ -144,7 +144,6 @@ type AgentTaskRun struct {
 	CancelRequestedAt  *time.Time                   `json:"cancel_requested_at,omitempty"`
 	CancellationReason string                       `json:"cancellation_reason,omitempty"`
 	IdempotencyKey     string                       `json:"idempotency_key"`
-	CorrelationID      string                       `json:"correlation_id,omitempty"`
 	Attempts           []AgentTaskAttempt           `json:"attempts,omitempty"`
 	Evidence           AgentTaskExecutionEvidence   `json:"evidence"`
 	Approval           *AgentTaskApproval           `json:"approval,omitempty"`

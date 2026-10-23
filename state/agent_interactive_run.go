@@ -47,7 +47,6 @@ type AgentInteractiveRun struct {
 	ToolCallCount       int                               `json:"tool_call_count"`
 	ToolInvocations     []AgentTaskToolInvocationEvidence `json:"tool_invocations,omitempty"`
 	ErrorCode           string                            `json:"error_code,omitempty"`
-	CorrelationID       string                            `json:"correlation_id,omitempty"`
 	IdempotencyKey      string                            `json:"idempotency_key"`
 	CreatedAt           time.Time                         `json:"created_at"`
 	UpdatedAt           time.Time                         `json:"updated_at"`

@@ -34,7 +34,6 @@ type ConversationBusinessActionRequest struct {
 	ToolVersion    string
 	ConversationID string
 	RunID          string
-	CorrelationID  string
 	Step           int
 	CallID         string
 	IdempotencyKey string

@@ -10,7 +10,7 @@ func TestDescriptorAndApplicationValidation(t *testing.T) {
 		t.Fatal("empty application accepted")
 	}
 	for _, mode := range []DeploymentMode{DeploymentModeModule, DeploymentModeSaaS} {
-		descriptor := Descriptor{ProtocolVersion: ProtocolVersionV1, Mode: mode, Capabilities: []string{CapabilityTaskStart, CapabilityTaskPoll, CapabilityTaskCancel, CapabilityInteractiveRun, CapabilityLifecycleExecute}}
+		descriptor := Descriptor{ProtocolVersion: ProtocolVersionV2, Mode: mode, Capabilities: []string{CapabilityTaskStart, CapabilityTaskPoll, CapabilityTaskCancel, CapabilityInteractiveRun, CapabilityLifecycleExecute}}
 		if err := descriptor.Validate(); err != nil {
 			t.Fatal(err)
 		}
@@ -46,7 +46,7 @@ func TestDescriptorSupportsIndependentConversationCapabilities(t *testing.T) {
 		{CapabilityInteractiveRun},
 		{CapabilityTaskStart, CapabilityTaskPoll, CapabilityTaskCancel},
 	} {
-		descriptor := Descriptor{ProtocolVersion: ProtocolVersionV1, Mode: DeploymentModeSaaS, Capabilities: capabilities}
+		descriptor := Descriptor{ProtocolVersion: ProtocolVersionV2, Mode: DeploymentModeSaaS, Capabilities: capabilities}
 		if err := descriptor.Validate(); err != nil {
 			t.Fatalf("valid capability subset %v: %v", capabilities, err)
 		}
@@ -57,7 +57,7 @@ func TestDescriptorSupportsIndependentConversationCapabilities(t *testing.T) {
 		{CapabilityConversationV1, CapabilityTaskStart},
 		{CapabilityInteractiveRun, CapabilityConversationStreamV1},
 	} {
-		descriptor := Descriptor{ProtocolVersion: ProtocolVersionV1, Mode: DeploymentModeSaaS, Capabilities: capabilities}
+		descriptor := Descriptor{ProtocolVersion: ProtocolVersionV2, Mode: DeploymentModeSaaS, Capabilities: capabilities}
 		if err := descriptor.Validate(); err == nil {
 			t.Fatalf("invalid capability dependencies accepted: %v", capabilities)
 		}

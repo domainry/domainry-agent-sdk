@@ -146,7 +146,7 @@ func fixture(t *testing.T, b *backendFixture, wrap func(http.Handler) http.Handl
 	return c, server
 }
 func actionRequest() sdk.ConversationBusinessActionRequest {
-	return sdk.ConversationBusinessActionRequest{Authority: testAuthority, Action: sdk.ConversationBusinessAction{ObjectKey: "customer", ActionKey: "create", Version: "v1", Data: json.RawMessage(`{"name":"Visible"}`)}, ConversationID: "conversation-a", RunID: "run-a", CorrelationID: "run-a", CallID: "call-a", IdempotencyKey: "key-a", Arguments: `{"name":"Visible"}`, Confirmation: &sdk.ConversationConfirmation{ID: "confirmation-a", UserID: testAuthority.UserID, ApprovedAt: time.Now().UTC()}}
+	return sdk.ConversationBusinessActionRequest{Authority: testAuthority, Action: sdk.ConversationBusinessAction{ObjectKey: "customer", ActionKey: "create", Version: "v1", Data: json.RawMessage(`{"name":"Visible"}`)}, ConversationID: "conversation-a", RunID: "run-a", CallID: "call-a", IdempotencyKey: "key-a", Arguments: `{"name":"Visible"}`, Confirmation: &sdk.ConversationConfirmation{ID: "confirmation-a", UserID: testAuthority.UserID, ApprovedAt: time.Now().UTC()}}
 }
 
 func TestHTTPBusinessProfilePreservesAllPorts(t *testing.T) {
@@ -427,7 +427,10 @@ func TestContractAndConfigurationFailBeforeIO(t *testing.T) {
 	// contract carries those receipts without moving authorization into Agent.
 	// Tool progress can mark a declared conditional stage as optional so product
 	// extensions do not need to report work that their branch did not perform.
-	const expected = "63732fafddb2204f8ccce1e480d051a4af47627ccd8047cc4caf961e74597b17"
+	// v2 also removes generic correlation IDs from Agent and Report DTOs. Those
+	// DTO shapes are part of this descriptor, so the coordinated SDK sources must
+	// produce this hash before either side can accept the protocol.
+	const expected = "fcfe81c93f2fa4d1580f03ede94a94d586cd5178e176917a723d959219b8219d"
 	if ContractSHA256() != expected {
 		t.Fatalf("public contract changed without compatibility review: %s", ContractSHA256())
 	}

@@ -22,7 +22,6 @@ type Principal struct {
 	// AccessBundle and cannot grant any sibling Action.
 	AuthorizedActionKey string
 	RequestID           string
-	CorrelationID       string
 	CausationID         string
 }
 
@@ -113,7 +112,7 @@ type InteractiveToolInvocationRequest struct {
 	Context                                   agentsdk.GlobalContext
 	Principal                                 Principal
 	RunID, SessionID, EntrypointKey, RouteKey string
-	CorrelationID, IdempotencyKey             string
+	IdempotencyKey                            string
 	Route                                     agentsdk.RouteResult
 }
 
@@ -154,7 +153,6 @@ type TaskAuthorizationRequest struct {
 	TaskRunID, WorkspaceID, ProcessID, NodeInstanceID string
 	TaskKey, TaskVersion                              string
 	Identity                                          agentsdk.ExecutionIdentity
-	CorrelationID                                     string
 	PreviousEvidence                                  []agentmodel.AgentAuthorizationEvidence
 }
 

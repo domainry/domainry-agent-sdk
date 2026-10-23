@@ -116,10 +116,8 @@ type ConversationRun struct {
 	// Context is the safe projection of the initial frozen model input. Tool
 	// execution steps expose their refreshed projections independently.
 	Context *ConversationContextView `json:"context,omitempty"`
-	// CorrelationID is the stable Agent run identity passed to every tool owner.
 	// Audit is a bounded, safe projection of execution facts; it never contains
 	// model text, tool arguments/results, credentials, or authorization evidence.
-	CorrelationID             string                      `json:"correlation_id,omitempty"`
 	Metrics                   ConversationRunMetrics      `json:"metrics"`
 	Audit                     []ConversationRunAuditEvent `json:"audit,omitempty"`
 	AuditComplete             bool                        `json:"audit_complete"`

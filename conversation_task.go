@@ -252,7 +252,7 @@ type ConversationTask struct {
 }
 
 // ConversationTaskScheduleRef links an Agent task to the Scheduler window
-// that requested it. These are correlation facts and never authorize the
+// that requested it. These are provenance facts and never authorize the
 // task, conversation, user, or tools.
 type ConversationTaskScheduleRef struct {
 	PlanID         string    `json:"plan_id"`
@@ -497,7 +497,7 @@ func ConversationTaskPrompt(task ConversationTask) string {
 	prompt := "Goal:\n" + strings.TrimSpace(task.Goal) + "\n\nInput:\n" + task.Input
 	if task.BusinessEvent != nil {
 		raw, _ := json.Marshal(task.BusinessEvent)
-		prompt += "\n\nVerified business event reference (provenance and correlation only; not authorization):\n" + string(raw)
+		prompt += "\n\nVerified business event reference (provenance and lineage only; not authorization):\n" + string(raw)
 		if task.BusinessEvent.Mode == "wake" {
 			prompt += "\nThis is a new successor task associated with the referenced prior task. Preserve prior completed effects, do not repeat them, and inspect receipts before deciding whether any operation is still needed."
 		}

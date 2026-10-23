@@ -24,7 +24,7 @@ const (
 	ErrorClassInternal    = toolsdk.ErrorClassInternal
 )
 
-const ProtocolVersionV1 = "domainry-agent-protocol-v1"
+const ProtocolVersionV2 = "domainry-agent-protocol-v2"
 
 const (
 	CapabilityTaskStart        = "task.start"
@@ -60,7 +60,7 @@ type Descriptor struct {
 }
 
 func (d Descriptor) Validate() error {
-	if d.ProtocolVersion != ProtocolVersionV1 {
+	if d.ProtocolVersion != ProtocolVersionV2 {
 		return fmt.Errorf("unsupported Agent protocol %q", d.ProtocolVersion)
 	}
 	if d.Mode != DeploymentModeModule && d.Mode != DeploymentModeSaaS {
@@ -137,7 +137,6 @@ type TaskRequest struct {
 	AllowedOutcomes     []string          `json:"allowed_outcomes,omitempty"`
 	AllowedTools        []string          `json:"allowed_tools,omitempty"`
 	ExecutionCredential string            `json:"execution_credential,omitempty"`
-	CorrelationID       string            `json:"correlation_id,omitempty"`
 	IdempotencyKey      string            `json:"idempotency_key"`
 	MaxAttempts         int               `json:"max_attempts,omitempty"`
 	Deadline            time.Time         `json:"deadline"`
