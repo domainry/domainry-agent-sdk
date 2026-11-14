@@ -6,16 +6,18 @@ import (
 )
 
 const (
-	AgentToolQueryRecords  = "query_records"
-	AgentToolGetRecord     = "get_record"
-	AgentToolInvokeAction  = "invoke_action"
-	AgentToolReadRecord    = "readRecord"
-	AgentToolCreateRecord  = "createRecord"
-	AgentToolUpdateRecord  = "updateRecord"
-	AgentToolDeleteRecord  = "deleteRecord"
-	AgentToolCallConnector = "callConnector"
-	AgentToolSendMessage   = "sendMessage"
-	AgentToolSendEmail     = "sendEmail"
+	AgentToolQueryRecords    = "query_records"
+	AgentToolGetRecord       = "get_record"
+	AgentToolKnowledgeSearch = "knowledge_search"
+	AgentToolKnowledgeRead   = "knowledge_read"
+	AgentToolInvokeAction    = "invoke_action"
+	AgentToolReadRecord      = "readRecord"
+	AgentToolCreateRecord    = "createRecord"
+	AgentToolUpdateRecord    = "updateRecord"
+	AgentToolDeleteRecord    = "deleteRecord"
+	AgentToolCallConnector   = "callConnector"
+	AgentToolSendMessage     = "sendMessage"
+	AgentToolSendEmail       = "sendEmail"
 )
 
 // AgentTool describes a provider-visible Agent tool and the static
@@ -29,16 +31,20 @@ type AgentTool struct {
 }
 
 var agentTools = map[string]AgentTool{
-	AgentToolQueryRecords:  {Key: AgentToolQueryRecords, RequiresAllowedObjects: true},
-	AgentToolGetRecord:     {Key: AgentToolGetRecord, RequiresAllowedObjects: true},
-	AgentToolInvokeAction:  {Key: AgentToolInvokeAction, RequiresAllowedObjects: true, RequiresAllowedActions: true, Writes: true},
-	AgentToolReadRecord:    {Key: AgentToolReadRecord},
-	AgentToolCreateRecord:  {Key: AgentToolCreateRecord, Writes: true},
-	AgentToolUpdateRecord:  {Key: AgentToolUpdateRecord, Writes: true},
-	AgentToolDeleteRecord:  {Key: AgentToolDeleteRecord, Writes: true},
-	AgentToolCallConnector: {Key: AgentToolCallConnector, Writes: true},
-	AgentToolSendMessage:   {Key: AgentToolSendMessage, Writes: true},
-	AgentToolSendEmail:     {Key: AgentToolSendEmail, Writes: true},
+	AgentToolQueryRecords: {Key: AgentToolQueryRecords, RequiresAllowedObjects: true},
+	AgentToolGetRecord:    {Key: AgentToolGetRecord, RequiresAllowedObjects: true},
+	// Knowledge is independently authorized against the live library and
+	// document boundary. Project Object grants are not Knowledge read grants.
+	AgentToolKnowledgeSearch: {Key: AgentToolKnowledgeSearch},
+	AgentToolKnowledgeRead:   {Key: AgentToolKnowledgeRead},
+	AgentToolInvokeAction:    {Key: AgentToolInvokeAction, RequiresAllowedObjects: true, RequiresAllowedActions: true, Writes: true},
+	AgentToolReadRecord:      {Key: AgentToolReadRecord},
+	AgentToolCreateRecord:    {Key: AgentToolCreateRecord, Writes: true},
+	AgentToolUpdateRecord:    {Key: AgentToolUpdateRecord, Writes: true},
+	AgentToolDeleteRecord:    {Key: AgentToolDeleteRecord, Writes: true},
+	AgentToolCallConnector:   {Key: AgentToolCallConnector, Writes: true},
+	AgentToolSendMessage:     {Key: AgentToolSendMessage, Writes: true},
+	AgentToolSendEmail:       {Key: AgentToolSendEmail, Writes: true},
 }
 
 func LookupAgentTool(key string) (AgentTool, bool) {
