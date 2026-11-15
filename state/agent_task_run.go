@@ -67,17 +67,18 @@ type AgentTaskExecutionEvidence struct {
 }
 
 type AgentTaskToolInvocationEvidence struct {
-	Ref                  string                     `json:"ref"`
-	Tool                 string                     `json:"tool"`
-	InputHash            string                     `json:"input_hash"`
-	OutputHash           string                     `json:"output_hash,omitempty"`
-	Status               string                     `json:"status"`
-	ErrorCode            string                     `json:"error_code,omitempty"`
-	Authorization        AgentAuthorizationEvidence `json:"authorization"`
-	StartedAt            time.Time                  `json:"started_at"`
-	FinishedAt           *time.Time                 `json:"finished_at,omitempty"`
-	DurationMilliseconds int64                      `json:"duration_ms,omitempty"`
-	CostUnits            int                        `json:"cost_units,omitempty"`
+	Knowledge            *AgentTaskKnowledgeEvidence `json:"knowledge,omitempty"`
+	Ref                  string                      `json:"ref"`
+	Tool                 string                      `json:"tool"`
+	InputHash            string                      `json:"input_hash"`
+	OutputHash           string                      `json:"output_hash,omitempty"`
+	Status               string                      `json:"status"`
+	ErrorCode            string                      `json:"error_code,omitempty"`
+	Authorization        AgentAuthorizationEvidence  `json:"authorization"`
+	StartedAt            time.Time                   `json:"started_at"`
+	FinishedAt           *time.Time                  `json:"finished_at,omitempty"`
+	DurationMilliseconds int64                       `json:"duration_ms,omitempty"`
+	CostUnits            int                         `json:"cost_units,omitempty"`
 }
 
 type AgentTaskReconciliation struct {

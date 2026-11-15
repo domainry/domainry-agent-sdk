@@ -59,6 +59,7 @@ type AgentToolCallStart struct {
 }
 
 type AgentToolCallFinish struct {
+	Knowledge                                          *agentmodel.AgentTaskKnowledgeEvidence
 	WorkspaceID, TaskRunID, CallRef, Status, ErrorCode string
 	Owner                                              string
 	FencingToken                                       int64

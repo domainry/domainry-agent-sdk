@@ -182,6 +182,8 @@ type TaskToolRequest struct {
 }
 
 type TaskToolResult struct {
+	// Populated only by the trusted Knowledge tool host, never by a model.
+	Knowledge        *agentmodel.AgentTaskKnowledgeEvidence
 	Status, Tool     string
 	Output, Proposal any
 	Authorization    agentmodel.AgentAuthorizationEvidence
