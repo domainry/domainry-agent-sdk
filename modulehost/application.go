@@ -189,6 +189,43 @@ type TaskToolResult struct {
 	Authorization    agentmodel.AgentAuthorizationEvidence
 }
 
+// TaskRuntimeEvent is the live, structured execution stream emitted by the
+// Agent task runner. It crosses only the trusted in-process host boundary: the
+// host decides what may be persisted or shown to an operator. Raw provider
+// reasoning is deliberately not part of this contract.
+type TaskRuntimeEvent struct {
+	WorkspaceID, TaskRunID, ProcessID, NodeInstanceID string
+	TaskKey, TaskVersion, IdempotencyKey              string
+	Type, Status, FinishReason                        string
+	Step                                              int
+	Tool, CallID                                      string
+	Input                                             map[string]any
+	Output                                            any
+	ToolCalls                                         []TaskRuntimeToolCall
+	OccurredAt                                        int64
+}
+
+type TaskRuntimeToolCall struct {
+	Tool, CallID string
+	Input        map[string]any
+}
+
+const (
+	TaskRuntimeEventModelStarted  = "model.started"
+	TaskRuntimeEventDecision      = "agent.decision"
+	TaskRuntimeEventToolStarted   = "tool.started"
+	TaskRuntimeEventToolCompleted = "tool.completed"
+	TaskRuntimeEventToolFailed    = "tool.failed"
+)
+
+// TaskRuntimeEventHost is optional so products that do not expose live Agent
+// activity do not need a no-op implementation. When implemented, publication
+// is synchronous: returning an error stops the task rather than continuing an
+// execution whose operator-visible history is incomplete.
+type TaskRuntimeEventHost interface {
+	PublishTaskRuntimeEvent(context.Context, TaskRuntimeEvent) error
+}
+
 // WorkflowTaskCompletion is a one-way asynchronous result notification from
 // Agent to Runtime. Runtime never calls back into Agent while committing it.
 type WorkflowTaskCompletion struct {
